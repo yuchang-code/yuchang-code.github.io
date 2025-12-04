@@ -1,242 +1,97 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>五子棋（HTML + CSS 範例）</title>
-  <style>
-   :root {
-  --size: 600px;
-  --cells: 15;
-  --line: #222;
-  --bg: #f0d9b5;
-}
+    <meta charset="UTF-8">
+    <title>五子棋</title>
 
-/* 版面 */
-body {
-  display: flex;
-  justify-content: center;
-  margin-top: 40px;
-  font-family: sans-serif;
-}
+    <style>
+        /* 整頁基本設定 */
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f2f2f2;
+        }
 
-/* 棋盤 */
-.board {
-  width: var(--size);
-  height: var(--size);
-  display: grid;
-  grid-template-columns: repeat(15, 1fr);
-  grid-template-rows: repeat(15, 1fr);
-  background-color: var(--bg);
-  border: 6px solid #8b5a2b;
-  position: relative;
+        /* 左右區塊容器 */
+        .container {
+            display: flex;
+            justify-content: center;
+            margin-top: 40px;
+        }
 
-  /* 畫線 */
-  background-image:
-    repeating-linear-gradient(
-      to right,
-      var(--line) 0,
-      var(--line) 1px,
-      transparent 1px,
-      transparent calc(100% / 15)
-    ),
-    repeating-linear-gradient(
-      to bottom,
-      var(--line) 0,
-      var(--line) 1px,
-      transparent 1px,
-      transparent calc(100% / 15)
-    );
-}
+        /* 棋盤區 */
+        .board {
+            width: 450px;
+            height: 450px;
+            background-color: #d8b87a;
+            display: grid;
+            grid-template-columns: repeat(15, 1fr);
+            grid-template-rows: repeat(15, 1fr);
+            border: 2px solid #333;
+        }
 
-  /* 每個交點 */
-  .point {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-  }
-    
-  /* 棋子 */
-  .stone {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    z-index: 2;
-  }
-  
-  .black {
-    background: radial-gradient(circle at 30% 30%, #555, #000);
-  }
-  
-  .white {
-    background: radial-gradient(circle at 30% 30%, #fff, #ddd);
-    border: 1px solid #aaa;
-  }
-    /* ===== 滑鼠預覽棋子（第 2 點） ===== */
-.point::after {
-  content: "";
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  opacity: 0;
-  transition: opacity 0.15s;
-  background: radial-gradient(circle at 30% 30%, #555, #000);
-}
+        /* 每一格 */
+        .cell {
+            border: 1px solid #333;
+            box-sizing: border-box;
+        }
 
-/* hover 時顯示預覽 */
-.point:hover::after {
-  opacity: 0.35;
-}
-    /* 資訊面板 */
-    .panel{
-      width:var(--panel-width);
-      min-height:var(--board-size);
-      background:#fff;
-      border-radius:10px;
-      padding:20px;
-      box-shadow: 0 6px 24px rgba(0,0,0,0.06);
-      display:flex;
-      flex-direction:column;
-      gap:16px;
-    }
+        /* 右邊資訊欄 */
+        .info {
+            margin-left: 30px;
+            width: 200px;
+        }
 
-    .panel h2{
-      margin:0 0 8px 0;
-      font-size:1.1rem;
-      color:#222;
-    }
+        .info h2 {
+            margin-top: 0;
+        }
 
-    .turn-box{
-      display:flex;
-      align-items:center;
-      gap:12px;
-      padding:12px;
-      border-radius:8px;
-      background: linear-gradient(180deg, #fbfbfb, #fff);
-      border:1px solid #eee;
-    }
+        .status {
+            margin: 20px 0;
+            font-size: 18px;
+        }
 
-    .turn-label{
-      font-size:0.95rem;
-      color:#555;
-    }
-
-    /* turn-indicator 可用來動態切換黑/白 */
-    .turn-indicator{
-      display:flex;
-      align-items:center;
-      gap:8px;
-    }
-
-    .turn-text{
-      font-weight:600;
-      font-size:1rem;
-    }
-
-    .buttons{
-      display:flex;
-      gap:12px;
-      margin-top:8px;
-    }
-
-    .btn{
-      flex:1;
-      padding:12px 14px;
-      border-radius:8px;
-      border: none;
-      cursor:pointer;
-      font-weight:600;
-      font-size:0.95rem;
-      transition:transform .12s ease, box-shadow .12s;
-    }
-    .btn:active{transform:translateY(1px)}
-    /* 悔棋通常次要 */
-    .btn.undo{
-      background:#fff;
-      border:1px solid #d0d0d0;
-      color:#222;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.04);
-    }
-    .btn.end{
-      background: linear-gradient(180deg,#ff6b6b,#e64545);
-      color:#fff;
-      border: none;
-      box-shadow: 0 6px 18px rgba(230,69,69,0.22);
-    }
-
-    /* 補充：棋盤上的座標文字（可作為未來輔助） */
-    .coords{
-      display:flex;
-      justify-content:space-between;
-      margin-top:8px;
-      font-size:0.85rem;
-      color:#666;
-    }
-
-    /* 響應式：小螢幕時 panel 置下方 */
-    @media (max-width:980px){
-      .container{flex-direction:column; align-items:center}
-      .panel{min-height:auto; width:95%;}
-      .board-wrap{width:95%}
-      :root{--board-size:90vw}
-    }
-  </style>
+        button {
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+    </style>
 </head>
+
 <body>
-  <div class="container">
-    <!-- 左：棋盤 -->
-    <div class="board" id="board"></div>
 
-    <!-- 右：資訊面板 -->
-    <aside class="panel" aria-label="遊戲資訊面板">
-      <h2>遊戲資訊</h2>
+<div class="container">
 
-      <div class="turn-box" id="turnBox" aria-live="polite">
-        <div class="turn-indicator" aria-hidden="true">
-          <!-- 這裡可用 .stone 來顯示目前玩家（由 JS 切換 class） -->
-          <span class="stone black" style="width:28px;height:28px;"></span>
+    <!-- 左邊：棋盤 -->
+    <div class="board">
+        <!-- 先用 div 做出 15 x 15 的棋盤 -->
+        <!-- 之後 JS 會控制這些格子 -->
+        <!-- 225 格 -->
+        <!-- 可以先不用管內容 -->
+        <!-- ↓ 重複 225 次 -->
+        <div class="cell"></div>
+        <div class="cell"></div>
+        <div class="cell"></div>
+        <!-- （中間省略，你可以用複製貼上補滿） -->
+        <!-- 如果你要，我也可以幫你自動生 225 格 -->
+    </div>
+
+    <!-- 右邊：資訊區 -->
+    <div class="info">
+        <h2>資訊</h2>
+
+        <div class="status">
+            目前輪到：黑棋
         </div>
-        <div>
-          <div class="turn-label">現在輪到</div>
-          <div class="turn-text" id="currentTurn">黑方</div>
-        </div>
-      </div>
 
-      <div>
-        <div style="font-size:0.92rem;color:#444;margin-bottom:8px;">動作</div>
-        <div class="buttons">
-          <button class="btn undo" id="undoBtn" type="button">悔棋</button>
-          <button class="btn end" id="endBtn" type="button">結束遊戲</button>
-        </div>
-      </div>
+        <button>悔棋</button>
+        <button>重新開始</button>
+    </div>
 
-      <hr style="border:none;height:1px;background:#f0f0f0;margin:14px 0;">
-
-      <div style="font-size:0.9rem;color:#666;line-height:1.5;">
-        提示：此檔案只包含 HTML + CSS。想要下棋互動（點擊交點下子、悔棋、判勝等），我可以接著幫你加 JavaScript 邏輯與事件綁定 — 若要我直接寫 JS，請告訴我你要的行為規則（例如盤面大小要用 15×15 還是 19×19，先手為黑或白，是否允許連五連珠禁手等）。
-      </div>
-    </aside>
-  </div>
-  
-
-<script>
-  const BOARD_SIZE = 15;
-  const board = document.getElementById("board");
-
-  for (let row = 1; row <= BOARD_SIZE; row++) {
-    for (let col = 1; col <= BOARD_SIZE; col++) {
-      const point = document.createElement("div");
-      point.className = "point";
-
-      /* 未來 JS 會用到（很重要） */
-      point.dataset.row = row;
-      point.dataset.col = col;
-
-      board.appendChild(point);
-    }
-  }
-</script>
+</div>
 
 </body>
 </html>
