@@ -5,68 +5,49 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>五子棋（HTML + CSS 範例）</title>
   <style>
-    :root{
-      --board-size: 600px; /* 棋盤固定大小，之後可改成相對值 */
-      --cells: 15; /* 15x15 */
-      --line-color: #222;
-      --bg: #f0d9b5; /* 棋盤底色 */
-      --panel-width: 320px;
-      --gap: 24px;
-      --stone-size: calc(var(--board-size) / var(--cells) * 0.9);
-    }
+   :root {
+  --size: 600px;
+  --cells: 15;
+  --line: #222;
+  --bg: #f0d9b5;
+}
 
-    *{box-sizing: border-box}
-    body{
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans CJK TC", "PingFang TC", "Heiti TC", "Microsoft JhengHei", Arial, sans-serif;
-      margin: 20px;
-      background:#fafafa;
-      color:#111;
-      -webkit-font-smoothing:antialiased;
-    }
+/* 版面 */
+body {
+  display: flex;
+  justify-content: center;
+  margin-top: 40px;
+  font-family: sans-serif;
+}
 
-    .container{
-      display:flex;
-      gap:var(--gap);
-      align-items:flex-start;
-      justify-content:center;
-      max-width: calc(var(--board-size) + var(--panel-width) + var(--gap) + 40px);
-      margin: 0 auto;
-    }
+/* 棋盤 */
+.board {
+  width: var(--size);
+  height: var(--size);
+  display: grid;
+  grid-template-columns: repeat(15, 1fr);
+  grid-template-rows: repeat(15, 1fr);
+  background-color: var(--bg);
+  border: 6px solid #8b5a2b;
+  position: relative;
 
-    /* 棋盤區 */
-    .board-wrap{
-      width:var(--board-size);
-      min-width:300px;
-    }
-
-    /* 棋盤 */
-  .board {
-    width: var(--size);
-    height: var(--size);
-    display: grid;
-    grid-template-columns: repeat(15, 1fr);
-    grid-template-rows: repeat(15, 1fr);
-    background-color: var(--bg);
-    border: 6px solid #8b5a2b;
-    position: relative;
-  
-    /* 畫線 */
-    background-image:
-      repeating-linear-gradient(
-        to right,
-        var(--line) 0,
-        var(--line) 1px,
-        transparent 1px,
-        transparent calc(100% / 15)
-      ),
-      repeating-linear-gradient(
-        to bottom,
-        var(--line) 0,
-        var(--line) 1px,
-        transparent 1px,
-        transparent calc(100% / 15)
-      );
-  }
+  /* 畫線 */
+  background-image:
+    repeating-linear-gradient(
+      to right,
+      var(--line) 0,
+      var(--line) 1px,
+      transparent 1px,
+      transparent calc(100% / 15)
+    ),
+    repeating-linear-gradient(
+      to bottom,
+      var(--line) 0,
+      var(--line) 1px,
+      transparent 1px,
+      transparent calc(100% / 15)
+    );
+}
 
   /* 每個交點 */
   .point {
