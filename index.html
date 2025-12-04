@@ -39,51 +39,74 @@
       min-width:300px;
     }
 
-    /* 真正的棋盤：用 repeating-linear-gradient 畫格線 */
-    .board{
-      width:100%;
-      height:var(--board-size);
-      background-color: var(--bg);
-      position:relative;
-      border: 6px solid #8b5a2b; /* 框線 */
-      border-radius:8px;
-      /* 使用兩組 repeating-linear-gradient 畫格線 */
-      background-image:
-        repeating-linear-gradient(to right, var(--line-color) 0, var(--line-color) 1px, transparent 1px, transparent calc(100% / var(--cells))),
-        repeating-linear-gradient(to bottom, var(--line-color) 0, var(--line-color) 1px, transparent 1px, transparent calc(100% / var(--cells)));
-      background-size: 100% 100%;
-      box-shadow: 0 6px 18px rgba(0,0,0,0.08);
-      overflow:hidden;
-    }
+    /* 棋盤 */
+  .board {
+    width: var(--size);
+    height: var(--size);
+    display: grid;
+    grid-template-columns: repeat(15, 1fr);
+    grid-template-rows: repeat(15, 1fr);
+    background-color: var(--bg);
+    border: 6px solid #8b5a2b;
+    position: relative;
+  
+    /* 畫線 */
+    background-image:
+      repeating-linear-gradient(
+        to right,
+        var(--line) 0,
+        var(--line) 1px,
+        transparent 1px,
+        transparent calc(100% / 15)
+      ),
+      repeating-linear-gradient(
+        to bottom,
+        var(--line) 0,
+        var(--line) 1px,
+        transparent 1px,
+        transparent calc(100% / 15)
+      );
+  }
 
-    /* 給每個交點（格子中心）留一個可放棋子的空間（純 CSS 範例內用於預覽） */
-    .intersection {
-      position:absolute;
-      width: calc(100% / var(--cells));
-      height: calc(100% / var(--cells));
-      transform: translate(-50%,-50%);
-      pointer-events:none; /* JS 下棋時可改掉 */
-    }
+  /* 每個交點 */
+  .point {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+    
+  /* 棋子 */
+  .stone {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    z-index: 2;
+  }
+  
+  .black {
+    background: radial-gradient(circle at 30% 30%, #555, #000);
+  }
+  
+  .white {
+    background: radial-gradient(circle at 30% 30%, #fff, #ddd);
+    border: 1px solid #aaa;
+  }
+    /* ===== 滑鼠預覽棋子（第 2 點） ===== */
+.point::after {
+  content: "";
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  opacity: 0;
+  transition: opacity 0.15s;
+  background: radial-gradient(circle at 30% 30%, #555, #000);
+}
 
-    /* 範例的黑白棋子（僅為顯示現在輪到誰時可參考） */
-    .stone {
-      width: var(--stone-size);
-      height: var(--stone-size);
-      border-radius:50%;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.25) inset;
-      display:inline-block;
-      vertical-align:middle;
-    }
-    .stone.black{
-      background: radial-gradient(circle at 30% 30%, #444 0%, #000 60%);
-      box-shadow: 0 4px 8px rgba(0,0,0,0.35);
-    }
-    .stone.white{
-      background: radial-gradient(circle at 30% 30%, #fff 0%, #e7e7e7 60%);
-      border: 1px solid #bbb;
-      box-shadow: 0 3px 6px rgba(0,0,0,0.15);
-    }
-
+/* hover 時顯示預覽 */
+.point:hover::after {
+  opacity: 0.35;
+}
     /* 資訊面板 */
     .panel{
       width:var(--panel-width);
@@ -182,24 +205,7 @@
 <body>
   <div class="container">
     <!-- 左：棋盤 -->
-    <div class="board-wrap">
-      <div class="board" id="board" aria-label="五子棋棋盤（15×15）" role="grid">
-        <!-- 範例：在棋盤中間放兩顆示意棋子（僅CSS位置示範，操作需 JavaScript） -->
-        <!-- 這些 .intersection 元素在未來可由 JS 插入於正確的交點位置 -->
-        <div class="intersection" style="left:50%; top:50%;">
-          <span class="stone black" aria-hidden="true"></span>
-        </div>
-        <div class="intersection" style="left:58.333%; top:50%;">
-          <span class="stone white" aria-hidden="true"></span>
-        </div>
-      </div>
-
-      <!-- 橫向座標（A-O）與縱向座標（1-15）設計提示（非必需） -->
-      <div class="coords" aria-hidden="true">
-        <div>A B C D E F G H I J K L M N O</div>
-        <div>1 - 15</div>
-      </div>
-    </div>
+    <div class="board" id="board"></div>
 
     <!-- 右：資訊面板 -->
     <aside class="panel" aria-label="遊戲資訊面板">
@@ -231,5 +237,25 @@
       </div>
     </aside>
   </div>
+  
+
+<script>
+  const BOARD_SIZE = 15;
+  const board = document.getElementById("board");
+
+  for (let row = 1; row <= BOARD_SIZE; row++) {
+    for (let col = 1; col <= BOARD_SIZE; col++) {
+      const point = document.createElement("div");
+      point.className = "point";
+
+      /* 未來 JS 會用到（很重要） */
+      point.dataset.row = row;
+      point.dataset.col = col;
+
+      board.appendChild(point);
+    }
+  }
+</script>
+
 </body>
 </html>
