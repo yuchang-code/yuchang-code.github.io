@@ -1,97 +1,99 @@
-<!DOCTYPE html>
-<html lang="zh-Hant">
-<head>
-    <meta charset="UTF-8">
-    <title>五子棋</title>
+<script>
+const board = document.getElementById("board");
+const size = 15;
+const gap = 30;
 
-    <style>
-        /* 整頁基本設定 */
-        body {
-            margin: 0;
-            font-family: Arial, sans-serif;
-            background-color: #f2f2f2;
-        }
+let currentPlayer = "black"; // black or white
+let isPlayerTurn = true;
+let chess = Array.from({ length: size }, () => Array(size).fill(null));
 
-        /* 左右區塊容器 */
-        .container {
-            display: flex;
-            justify-content: center;
-            margin-top: 40px;
-        }
+/* 選擇先後手 */
+if (!confirm("你要先手（黑棋）嗎？\n按取消則你後手（白棋）")) {
+  currentPlayer = "white";
+  isPlayerTurn = false;
+  setTimeout(computerMove, 500);
+}
 
-        /* 棋盤區 */
-        .board {
-            width: 450px;
-            height: 450px;
-            background-color: #d8b87a;
-            display: grid;
-            grid-template-columns: repeat(15, 1fr);
-            grid-template-rows: repeat(15, 1fr);
-            border: 2px solid #333;
-        }
+/* 畫棋盤線 */
+for (let i = 0; i < size - 1; i++) {
+  const h = document.createElement("div");
+  h.className = "line horizontal";
+  h.style.top = `${i * gap}px`;
+  board.appendChild(h);
 
-        /* 每一格 */
-        .cell {
-            border: 1px solid #333;
-            box-sizing: border-box;
-        }
+  const v = document.createElement("div");
+  v.className = "line vertical";
+  v.style.left = `${i * gap}px`;
+  board.appendChild(v);
+}
 
-        /* 右邊資訊欄 */
-        .info {
-            margin-left: 30px;
-            width: 200px;
-        }
+/* 建立交點 */
+for (let y = 0; y < size; y++) {
+  for (let x = 0; x < size; x++) {
+    const point = document.createElement("div");
+    point.className = "point";
+    point.style.left = `${x * gap}px`;
+    point.style.top = `${y * gap}px`;
 
-        .info h2 {
-            margin-top: 0;
-        }
+    point.addEventListener("click", () => {
+      if (!isPlayerTurn) return;
+      if (chess[y][x]) return;
 
-        .status {
-            margin: 20px 0;
-            font-size: 18px;
-        }
+      placeStone(x, y, currentPlayer);
+      chess[y][x] = currentPlayer;
 
-        button {
-            width: 100%;
-            padding: 10px;
-            margin-top: 10px;
-            font-size: 16px;
-            cursor: pointer;
-        }
-    </style>
-</head>
+      switchTurn();
+      setTimeout(computerMove, 300);
+    });
 
-<body>
+    board.appendChild(point);
+  }
+}
 
-<div class="container">
+/* 星位 */
+[
+  [3,3],[3,11],[7,7],[11,3],[11,11]
+].forEach(([x,y]) => {
+  const s = document.createElement("div");
+  s.className = "star";
+  s.style.left = `${x * gap}px`;
+  s.style.top = `${y * gap}px`;
+  board.appendChild(s);
+});
 
-    <!-- 左邊：棋盤 -->
-    <div class="board">
-        <!-- 先用 div 做出 15 x 15 的棋盤 -->
-        <!-- 之後 JS 會控制這些格子 -->
-        <!-- 225 格 -->
-        <!-- 可以先不用管內容 -->
-        <!-- ↓ 重複 225 次 -->
-        <div class="cell"></div>
-        <div class="cell"></div>
-        <div class="cell"></div>
-        <!-- （中間省略，你可以用複製貼上補滿） -->
-        <!-- 如果你要，我也可以幫你自動生 225 格 -->
-    </div>
+/* 放棋子 */
+function placeStone(x, y, color) {
+  const stone = document.createElement("div");
+  stone.className = `stone ${color}`;
+  stone.style.left = `${x * gap}px`;
+  stone.style.top = `${y * gap}px`;
+  board.appendChild(stone);
+}
 
-    <!-- 右邊：資訊區 -->
-    <div class="info">
-        <h2>資訊</h2>
+/* 換手 */
+function switchTurn() {
+  currentPlayer = currentPlayer === "black" ? "white" : "black";
+  isPlayerTurn = !isPlayerTurn;
+}
 
-        <div class="status">
-            目前輪到：黑棋
-        </div>
+/* 電腦下棋（簡單隨機） */
+function computerMove() {
+  if (isPlayerTurn) return;
 
-        <button>悔棋</button>
-        <button>重新開始</button>
-    </div>
+  let empty = [];
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      if (!chess[y][x]) empty.push([x, y]);
+    }
+  }
 
-</div>
+  if (empty.length === 0) return;
 
-</body>
-</html>
+  const [x, y] = empty[Math.floor(Math.random() * empty.length)];
+
+  placeStone(x, y, currentPlayer);
+  chess[y][x] = currentPlayer;
+
+  switchTurn();
+}
+</script>
