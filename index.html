@@ -148,7 +148,7 @@ if (!confirm("你要先手（黑棋）嗎？\n按取消則你後手（白棋）"
 }
 
 /* 畫棋盤線 */
-for (let i = 0; i < size - 1; i++) {
+for (let i = 0; i < size ; i++) {
   const h = document.createElement("div");
   h.className = "line horizontal";
   h.style.top = `${i * gap}px`;
