@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <title>五子棋</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f7f7f7;
+    }
+
+    .container {
+      display: flex;
+      padding: 20px;
+    }
+
+    /* 棋盤區 */
+    .board {
+      width: 480px;
+      height: 480px;
+      background: #d8b778; /* 木頭色 */
+      display: grid;
+      grid-template-columns: repeat(15, 1fr);
+      grid-template-rows: repeat(15, 1fr);
+      border: 2px solid #333;
+      position: relative;
+    }
+
+    .cell {
+      border: 1px solid rgba(0,0,0,0.3);
+      position: relative;
+      cursor: pointer;
+    }
+
+    .piece {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    .black { background: black; }
+    .white { background: white; border: 1px solid #000; }
+
+    /* 右側資訊區 */
+    .info {
+      margin-left: 40px;
+      padding: 20px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      width: 220px;
+      height: fit-content;
+    }
+
+    .buttons {
+      margin-top: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    button {
+      padding: 10px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+
+    .undo { background: #f0c040; }
+    .restart { background: #e06060; color: white; }
+
+    /* 規則區 */
+    .rules {
+      margin: 20px;
+      padding: 15px;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 0 8px rgba(0,0,0,0.1);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- 棋盤 -->
+    <div class="board" id="board"></div>
+
+    <!-- 右側資訊區 -->
+    <div class="info">
+      <h3>現在輪到：</h3>
+      <div id="turn">黑棋</div>
+
+      <div class="buttons">
+        <button class="undo" id="undoBtn">毀棋</button>
+        <button class="restart" id="restartBtn">重新開始</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 規則說明 -->
+  <div class="rules">
+    <h3>遊戲規則：</h3>
+    <ul>
+      <li>玩家輪流於交叉點下棋子。</li>
+      <li>黑棋先下，白棋後下。</li>
+      <li>最先形成五顆連線（橫、直、斜）的玩家獲勝。</li>
+      <li>毀棋可回到上一手。</li>
+      <li>重新開始會清空棋盤。</li>
+    </ul>
+  </div>
+
+  <script>
+    // === 初始化棋盤 ===
+    const board = document.getElementById("board");
+    const turnText = document.getElementById("turn");
+
+    let currentPlayer = "black"; // black 或 white
+    let moves = []; // 記錄每一步 {cell, piece}
+
+    // 建立 15x15 格子
+    for (let i = 0; i < 225; i++) {
+      const cell = document.createElement("div");
+      cell.classList.add("cell");
+
+      cell.addEventListener("click", () => {
+        if (cell.children.length > 0) return; // 已經有棋子
+
+        const piece = document.createElement("div");
+        piece.classList.add("piece", currentPlayer);
+        cell.appendChild(piece);
+
+        moves.push({ cell, piece });
+
+        currentPlayer = currentPlayer === "black" ? "white" : "black";
+        turnText.textContent = currentPlayer === "black" ? "黑棋" : "白棋";
+      });
+
+      board.appendChild(cell);
+    }
+
+    // === 毀棋 ===
+    document.getElementById("undoBtn").addEventListener("click", () => {
+      const last = moves.pop();
+      if (!last) return;
+
+      last.cell.removeChild(last.piece);
+      currentPlayer = currentPlayer === "black" ? "white" : "black";
+      turnText.textContent = currentPlayer === "black" ? "黑棋" : "白棋";
+    });
+
+    // === 重新開始 ===
+    document.getElementById("restartBtn").addEventListener("click", () => {
+      board.querySelectorAll(".piece").forEach(p => p.remove());
+      moves = [];
+      currentPlayer = "black";
+      turnText.textContent = "黑棋";
+    });
+  </script>
+</body>
+</html>
