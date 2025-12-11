@@ -191,22 +191,25 @@ function drawCard(t) {
 
 /* ===== 卡片 HTML ===== */
 function cardHTML(track) {
-  const artist = track.artists[0].name;
-  const title = track.name;
-  const preview = track.preview_url;
+    const artist = track.artists[0].name;
+    const title = track.name;
+    const preview = track.preview_url;
+    const spotifyUrl = track.external_urls.spotify; // 獲取 Spotify 網址
 
-  return `
-    <strong>${title}</strong><br>
-    歌手：${artist}<br><br>
+    return `
+        <strong>${title}</strong><br>
+        歌手：${artist}<br><br>
 
-    <button onclick="loadLyrics('${artist}', '${title}')">歌詞</button>
+        <button onclick="loadLyrics('${artist}', '${title}')">歌詞</button>
 
-    ${
-      preview
-        ? `<button style="margin-left:10px" onclick="playPreview('${preview}')">試聽</button>`
-        : `<span style="margin-left:10px; color:#888">無試聽</span>`
-    }
-  `;
+        ${
+            preview
+                ? `<button style="margin-left:10px" onclick="playPreview('${preview}')">試聽</button>`
+                : `<a href="${spotifyUrl}" target="_blank" style="margin-left:10px; text-decoration:none;">
+                     <button style="background:#535353;">在 Spotify 播放</button>
+                  </a>`
+        }
+    `;
 }
 
 /* ===== 試聽 ===== */
@@ -219,15 +222,37 @@ function playPreview(url) {
 
 /* ===== 歌詞 API ===== */
 async function loadLyrics(artist, title) {
-  lyrics.innerHTML = "<span class='spinner'></span> 取得歌詞…";
+  lyrics.innerHTML = "<span class='spinner'></span> 取得歌詞…";
 
-  const url =
-    `https://api-song-lyrics.vercel.app/lyrics?song=${encodeURIComponent(title)}&artist=${encodeURIComponent(artist)}`;
+  // 使用 Lyrics.ovh API 進行查詢
+  const url =
+    `https://api.lyrics.ovh/v1/${encodeURIComponent(artist)}/${encodeURIComponent(title)}`;
 
-  const res = await fetch(url);
-  const data = await res.json();
+  try {
+    const res = await fetch(url);
 
-  lyrics.innerText = data.lyrics || "找不到歌詞";
+    // 檢查 HTTP 狀態碼
+    if (!res.ok) {
+      lyrics.innerText = "找不到歌詞或 API 發生錯誤";
+      return;
+    }
+
+    const data = await res.json();
+
+    // 檢查回傳的 JSON 是否包含錯誤信息
+    if (data.error) {
+      lyrics.innerText = data.error; // 顯示 API 回傳的錯誤
+    } else if (data.lyrics) {
+      lyrics.innerText = data.lyrics;
+    } else {
+      lyrics.innerText = "找不到歌詞";
+    }
+
+  } catch (error) {
+    // 捕獲網路錯誤 (例如：Failed to fetch)
+    console.error("Fetch 歌詞失敗:", error);
+    lyrics.innerText = "網路連線或伺服器錯誤，無法取得歌詞。";
+  }
 }
 
 /* ===== 自動解析 Token ===== */
