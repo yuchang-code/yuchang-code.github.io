@@ -138,6 +138,7 @@ const gap = 30;
 
 let currentPlayer = "black"; // black or white
 let isPlayerTurn = true;
+let gameOver = false; // ★ 用來避免勝負後繼續下棋
 let chess = Array.from({ length: size }, () => Array(size).fill(null));
 
 /* 選擇先後手 */
@@ -169,11 +170,17 @@ for (let y = 0; y < size; y++) {
     point.style.top = `${y * gap}px`;
 
     point.addEventListener("click", () => {
-      if (!isPlayerTurn) return;
+      if (!isPlayerTurn || gameOver) return;
       if (chess[y][x]) return;
 
       placeStone(x, y, currentPlayer);
       chess[y][x] = currentPlayer;
+
+      if (checkWin(x, y, currentPlayer)) {
+        gameOver = true;
+        alert((currentPlayer === "black" ? "黑棋" : "白棋") + "勝利！");
+        return;
+      }
 
       switchTurn();
       setTimeout(computerMove, 300);
@@ -209,9 +216,44 @@ function switchTurn() {
   isPlayerTurn = !isPlayerTurn;
 }
 
+/* 勝負判斷 */
+function checkWin(x, y, color) {
+  // 定義四個方向向量
+  const directions = [
+    [1, 0],  // 橫向 →
+    [0, 1],  // 直向 ↓
+    [1, 1],  // 斜向 ↘
+    [1, -1]  // 反斜 ↗
+  ];
+
+  for (let [dx, dy] of directions) {
+    let count = 1;
+
+    // 往前算
+    let nx = x + dx, ny = y + dy;
+    while (nx >= 0 && ny >= 0 && nx < size && ny < size && chess[ny][nx] === color) {
+      count++;
+      nx += dx;
+      ny += dy;
+    }
+
+    // 往後算
+    nx = x - dx; ny = y - dy;
+    while (nx >= 0 && ny >= 0 && nx < size && ny < size && chess[ny][nx] === color) {
+      count++;
+      nx -= dx;
+      ny -= dy;
+    }
+
+    if (count >= 5) return true;
+  }
+
+  return false;
+}
+
 /* 電腦下棋（簡單隨機） */
 function computerMove() {
-  if (isPlayerTurn) return;
+  if (isPlayerTurn || gameOver) return;
 
   let empty = [];
   for (let y = 0; y < size; y++) {
@@ -227,9 +269,16 @@ function computerMove() {
   placeStone(x, y, currentPlayer);
   chess[y][x] = currentPlayer;
 
+  if (checkWin(x, y, currentPlayer)) {
+    gameOver = true;
+    alert((currentPlayer === "black" ? "黑棋" : "白棋") + "勝利！");
+    return;
+  }
+
   switchTurn();
 }
 </script>
+
 
 
 </body>
