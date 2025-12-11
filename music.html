@@ -221,35 +221,50 @@ function playPreview(url) {
 }
 
 /* ===== 歌詞 API ===== */
+/* ===== 歌詞 API (使用 NetEase Cloud Music API) ===== */
 async function loadLyrics(artist, title) {
   lyrics.innerHTML = "<span class='spinner'></span> 取得歌詞…";
 
-  // 使用 Lyrics.ovh API 進行查詢
-  const url =
-    `https://api.lyrics.ovh/v1/${encodeURIComponent(artist)}/${encodeURIComponent(title)}`;
-
+  // 1. 先透過關鍵字搜尋歌曲 ID
+  const searchUrl = `https://netease-cloud-music-api.vercel.app/search?keywords=${encodeURIComponent(title + " " + artist)}&limit=1`;
+  
   try {
-    const res = await fetch(url);
+    let res = await fetch(searchUrl);
+    let data = await res.json();
 
-    // 檢查 HTTP 狀態碼
-    if (!res.ok) {
-      lyrics.innerText = "找不到歌詞或 API 發生錯誤";
+    // 檢查是否有找到結果
+    if (!data.result || !data.result.songs || data.result.songs.length === 0) {
+      lyrics.innerText = "找不到歌曲 ID，無法查詢歌詞。";
       return;
     }
 
-    const data = await res.json();
-
-    // 檢查回傳的 JSON 是否包含錯誤信息
-    if (data.error) {
-      lyrics.innerText = data.error; // 顯示 API 回傳的錯誤
-    } else if (data.lyrics) {
-      lyrics.innerText = data.lyrics;
+    const songId = data.result.songs[0].id;
+    
+    // 2. 透過歌曲 ID 查詢歌詞
+    const lyricsUrl = `https://netease-cloud-music-api.vercel.app/lyric?id=${songId}`;
+    
+    res = await fetch(lyricsUrl);
+    data = await res.json();
+    
+    // 3. 顯示歌詞 (如果沒有 tly (翻譯歌詞) 則顯示 lrc (原始歌詞))
+    let lrc = data.lrc ? data.lrc.lyric : '';
+    let tly = data.tly ? data.tly.lyric : '';
+    
+    if (lrc || tly) {
+      // 清除時間標籤 [mm:ss.xx]
+      let cleanedLyrics = lrc.replace(/\[.*\]\s*/g, ''); 
+      
+      // 如果有翻譯，可以選擇性地顯示
+      if (tly) {
+        cleanedLyrics += "\n\n--- 翻譯歌詞 ---\n\n" + tly.replace(/\[.*\]\s*/g, '');
+      }
+      
+      lyrics.innerText = cleanedLyrics;
     } else {
-      lyrics.innerText = "找不到歌詞";
+      lyrics.innerText = "找不到歌詞 (可能是純音樂或資料庫無收錄)。";
     }
 
   } catch (error) {
-    // 捕獲網路錯誤 (例如：Failed to fetch)
     console.error("Fetch 歌詞失敗:", error);
     lyrics.innerText = "網路連線或伺服器錯誤，無法取得歌詞。";
   }
