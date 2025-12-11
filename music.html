@@ -96,6 +96,7 @@ button:hover { background: #159c46; }
 
 <audio id="audioPlayer" controls style="margin-top:15px; width:100%; display:none;"></audio>
 
+<div id="spotifyEmbedContainer" style="margin-top:15px;"></div>
 <script>
 /* ===== Spotify PKCE ===== */
 const clientId = "c1ed4bfc3fbd4fe4bacec9720af2aaed"; 
@@ -190,26 +191,26 @@ function drawCard(t) {
 
 
 /* ===== 卡片 HTML ===== */
+/* ===== 卡片 HTML - 新增嵌入按鈕 ===== */
 function cardHTML(track) {
-    const artist = track.artists[0].name;
-    const title = track.name;
-    const preview = track.preview_url;
-    const spotifyUrl = track.external_urls.spotify; // 獲取 Spotify 網址
+  const artist = track.artists[0].name;
+  const title = track.name;
+  const preview = track.preview_url;
+  
+  // 獲取 Spotify 歌曲的 URI/URL，這是嵌入的關鍵
+  const spotifyUri = track.uri; // 例如：spotify:track:4k3u8cT9z90hLhF4Q0p26d
+  
+  return `
+    <strong>${title}</strong><br>
+    歌手：${artist}<br><br>
 
-    return `
-        <strong>${title}</strong><br>
-        歌手：${artist}<br><br>
+    <button onclick="loadLyrics('${artist}', '${title}')">歌詞</button>
 
-        <button onclick="loadLyrics('${artist}', '${title}')">歌詞</button>
-
-        ${
-            preview
-                ? `<button style="margin-left:10px" onclick="playPreview('${preview}')">試聽</button>`
-                : `<a href="${spotifyUrl}" target="_blank" style="margin-left:10px; text-decoration:none;">
-                     <button style="background:#535353;">在 Spotify 播放</button>
-                  </a>`
-        }
-    `;
+    ${
+      // 不管是否有 30 秒試聽，都提供 Spotify 嵌入播放
+      `<button style="margin-left:10px; background:#1DB954;" onclick="embedSpotifyPlayer('${spotifyUri}')">嵌入播放</button>`
+    }
+  `;
 }
 
 /* ===== 試聽 ===== */
@@ -269,7 +270,35 @@ async function loadLyrics(artist, title) {
     lyrics.innerText = "網路連線或伺服器錯誤，無法取得歌詞。";
   }
 }
-
+/* ===== 嵌入 Spotify 播放器 ===== */
+function embedSpotifyPlayer(spotifyUri) {
+  const container = document.getElementById("spotifyEmbedContainer");
+  
+  // 隱藏原本的 <audio> 播放器，避免衝突
+  document.getElementById("audioPlayer").style.display = "none";
+  
+  // 清除容器內所有內容
+  container.innerHTML = "";
+  
+  // 從 spotify:track:XXX 中提取 ID (XXX)
+  const parts = spotifyUri.split(':');
+  const trackId = parts[2];
+  
+  // 構造 Spotify 嵌入播放器的 URL
+  // source=button 讓它看起來像是一個按鈕啟動的
+  const embedSrc = `https://open.spotify.com/embed/track/${trackId}?utm_source=generator&theme=0`;
+  
+  // 創建 <iframe> 元素
+  const iframe = document.createElement("iframe");
+  iframe.src = embedSrc;
+  iframe.width = "100%";
+  iframe.height = "80"; // 嵌入歌曲的小型播放器高度通常為 80
+  iframe.frameBorder = "0";
+  iframe.allow = "encrypted-media";
+  
+  // 將 <iframe> 加入容器
+  container.appendChild(iframe);
+}
 /* ===== 自動解析 Token ===== */
 (async function () {
   const code = new URLSearchParams(location.search).get("code");
