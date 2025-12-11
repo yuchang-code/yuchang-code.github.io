@@ -149,14 +149,15 @@ async function searchSong() {
 // 取得歌詞（使用 lyrics.ovh）
 // -------------------------------
 async function loadLyrics(artist, title) {
-  const url = `https://api.lyrics.ovh/v1/${artist}/${title}`;
-  
+  const url = `https://api-song-lyrics.vercel.app/lyrics?song=${encodeURIComponent(title)}&artist=${encodeURIComponent(artist)}`;
+
   const res = await fetch(url);
   const data = await res.json();
 
   document.getElementById("lyrics").innerText =
-    data.lyrics || "找不到歌詞 :(";
+    data.lyrics || "找不到歌詞";
 }
+
 
 // -------------------------------
 // 每次回到頁面自動解析 token
