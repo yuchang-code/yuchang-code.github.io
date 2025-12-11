@@ -271,7 +271,7 @@ async function loadLyrics(artist, title) {
   }
 }
 /* ===== 嵌入 Spotify 播放器 ===== */
-/* ===== 嵌入 Spotify 播放器 (最終修正版本) ===== */
+/* ===== 嵌入 Spotify 播放器 (最終修正：修正 Mixed Content 錯誤) ===== */
 function embedSpotifyPlayer(spotifyUri) {
   const container = document.getElementById("spotifyEmbedContainer");
   
@@ -283,7 +283,6 @@ function embedSpotifyPlayer(spotifyUri) {
   
   // 1. 從 spotify:track:XXX 中提取 ID (XXX)
   const parts = spotifyUri.split(':');
-  // 確保 parts[2] 存在，如果沒有則使用空字串
   const trackId = parts.length > 2 ? parts[2] : ''; 
   
   if (!trackId) {
@@ -291,10 +290,9 @@ function embedSpotifyPlayer(spotifyUri) {
     return;
   }
   
-  // 2. 構造 Spotify 嵌入播放器的 URL (標準格式)
-  // 使用 embed 網址，並將 track ID 插入正確位置
-  // 注意：此處已修正為正確的 URL 格式
-  const embedSrc = `http://googleusercontent.com/spotify.com/5${trackId}?utm_source=generator&theme=0`;
+  // 2. 構造 Spotify 嵌入播放器的 URL
+  // 【關鍵修正】：將 http:// 改為 https:// 解決 Mixed Content 錯誤
+  const embedSrc = `https://googleusercontent.com/spotify.com/5${trackId}?utm_source=generator&theme=0`;
   
   // 3. 創建 <iframe> 元素
   const iframe = document.createElement("iframe");
@@ -304,7 +302,7 @@ function embedSpotifyPlayer(spotifyUri) {
   iframe.frameBorder = "0";
   iframe.allow = "encrypted-media";
   iframe.title = "Spotify Embed Player";
-  iframe.style.borderRadius = '12px'; // 讓播放器看起來更美觀
+  iframe.style.borderRadius = '12px';
   
   // 4. 將 <iframe> 加入容器
   container.appendChild(iframe);
