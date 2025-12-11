@@ -1,13 +1,10 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-<meta charset="UTF-8" />
+<meta charset="UTF-8">
 <title>Music Search</title>
 
 <style>
-/* ------------------
-   基本風格（Spotify Style）
------------------- */
 body {
   background: #121212;
   color: white;
@@ -16,7 +13,6 @@ body {
 }
 
 h2 {
-  margin-top: 0;
   color: #1DB954;
 }
 
@@ -25,27 +21,16 @@ input, button {
   font-size: 16px;
   border-radius: 6px;
   border: none;
-  margin: 5px 0;
-}
-
-input {
-  width: 70%;
 }
 
 button {
-  cursor: pointer;
   background: #1DB954;
   color: #fff;
+  cursor: pointer;
   transition: 0.2s;
 }
+button:hover { background: #159c46; }
 
-button:hover {
-  background: #17a446;
-}
-
-/* ------------------
-   搜尋結果卡片
------------------- */
 .result-card {
   background: #1e1e1e;
   padding: 15px;
@@ -54,50 +39,45 @@ button:hover {
   border: 1px solid #333;
 }
 
-.result-card strong {
-  font-size: 18px;
+#top3 {
+  margin-bottom: 20px;
 }
 
-/* ------------------
-   歌詞區塊
------------------- */
+#scrollArea {
+  max-height: 280px;
+  overflow-y: auto;
+  border-top: 1px solid #333;
+  padding-top: 10px;
+}
+
 #lyrics {
   background: #1e1e1e;
   padding: 20px;
   border-radius: 8px;
-  margin-top: 15px;
-  white-space: pre-line;
   border: 1px solid #333;
   min-height: 120px;
+  white-space: pre-line;
 }
 
-/* ------------------
-   Loading 動畫
------------------- */
 #loading {
   display: none;
-  margin: 15px 0;
-  font-size: 16px;
-  color: #1DB954;
+  margin-top: 10px;
   font-weight: bold;
+  color: #1DB954;
 }
 
 .spinner {
-  width: 22px;
-  height: 22px;
+  width: 20px; height: 20px;
   border: 3px solid #1DB954;
   border-top-color: transparent;
   border-radius: 50%;
-  display: inline-block;
   animation: spin 0.8s linear infinite;
-  vertical-align: middle;
+  display: inline-block;
 }
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
+@keyframes spin { to { transform: rotate(360deg); } }
 </style>
 </head>
+
 <body>
 
 <h2>Spotify 音樂查詢</h2>
@@ -110,27 +90,27 @@ button:hover {
 
 <div id="loading"><span class="spinner"></span> Loading…</div>
 
-<div id="results"></div>
+<h3>前三首</h3>
+<div id="top3"></div>
+
+<h3>更多歌曲</h3>
+<div id="scrollArea"></div>
 
 <hr>
 
 <h2>歌詞</h2>
 <div id="lyrics">請選擇歌曲以顯示歌詞</div>
 
+<audio id="audioPlayer" controls style="margin-top:15px; width:100%; display:none;"></audio>
+
 <script>
-/* -------------------------------
-   Spotify PKCE 設定
---------------------------------*/
-const clientId = "c1ed4bfc3fbd4fe4bacec9720af2aaed";  // 你自己的 Client ID
+/* ===== Spotify PKCE ===== */
+const clientId = "c1ed4bfc3fbd4fe4bacec9720af2aaed"; 
 const redirectUri = "https://yuchang-code.github.io/music.html";
 
 let accessToken = null;
-
 let codeVerifier = null;
 
-/* -------------------------------
-   PKCE 工具
---------------------------------*/
 async function generateCodeVerifier() {
   const array = new Uint32Array(56);
   crypto.getRandomValues(array);
@@ -139,21 +119,19 @@ async function generateCodeVerifier() {
 }
 
 async function sha256(str) {
-  const data = new TextEncoder().encode(str);
-  return crypto.subtle.digest("SHA-256", data);
+  return crypto.subtle.digest("SHA-256", new TextEncoder().encode(str));
 }
 
-function base64urlencode(buffer) {
+function base64url(buffer) {
   return btoa(String.fromCharCode(...new Uint8Array(buffer)))
-    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
 async function loginWithSpotify() {
   await generateCodeVerifier();
+  const challenge = base64url(await sha256(codeVerifier));
 
-  const challenge = base64urlencode(await sha256(codeVerifier));
-
-  const authUrl = 
+  const url =
     "https://accounts.spotify.com/authorize?" +
     "response_type=code" +
     "&client_id=" + clientId +
@@ -161,8 +139,8 @@ async function loginWithSpotify() {
     "&code_challenge=" + challenge +
     "&redirect_uri=" + encodeURIComponent(redirectUri) +
     "&scope=user-read-private";
-
-  window.location = authUrl;
+  
+  window.location = url;
 }
 
 async function fetchAccessToken(code) {
@@ -171,14 +149,14 @@ async function fetchAccessToken(code) {
   const body = new URLSearchParams({
     client_id: clientId,
     grant_type: "authorization_code",
-    code: code,
+    code,
     redirect_uri: redirectUri,
     code_verifier: verifier
   });
 
   const res = await fetch("https://accounts.spotify.com/api/token", {
     method: "POST",
-    headers: {"Content-Type": "application/x-www-form-urlencoded"},
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body
   });
 
@@ -186,74 +164,96 @@ async function fetchAccessToken(code) {
   accessToken = data.access_token;
 }
 
-/* -------------------------------
-   搜尋歌曲（含 Loading 動畫）
---------------------------------*/
+/* ===== 搜尋音樂 ===== */
 async function searchSong() {
-  const q = document.getElementById("searchInput").value;
+  const q = searchInput.value.trim();
+  if (!q) return;
+  if (!accessToken) return alert("請先登入 Spotify");
 
-  if (!accessToken) {
-    alert("請先登入 Spotify");
-    return;
-  }
-  if (!q.trim()) return;
+  loading.style.display = "block";
+  top3.innerHTML = "";
+  scrollArea.innerHTML = "";
 
-  document.getElementById("loading").style.display = "block";
-  document.getElementById("results").innerHTML = "";
+  const url = `https://api.spotify.com/v1/search?q=${encodeURIComponent(q)}&type=track&limit=20`;
 
-  const url = `https://api.spotify.com/v1/search?q=${encodeURIComponent(q)}&type=track&limit=5`;
-
-  const res = await fetch(url, {
-    headers: { Authorization: "Bearer " + accessToken }
-  });
-
+  const res = await fetch(url, { headers: { Authorization: "Bearer " + accessToken } });
   const data = await res.json();
+
+  loading.style.display = "none";
+
   const list = data.tracks.items;
+  if (!list.length) return;
 
-  const results = document.getElementById("results");
-  document.getElementById("loading").style.display = "none";
+  // 前三首
+  list.slice(0, 3).forEach(drawCardTop3);
 
-  list.forEach(track => {
-    const div = document.createElement("div");
-    div.className = "result-card";
-    div.innerHTML = `
-      <strong>${track.name}</strong><br>
-      <span>歌手：${track.artists[0].name}</span><br><br>
-      <button onclick="loadLyrics('${track.artists[0].name}', '${track.name}')">顯示歌詞</button>
-    `;
-    results.appendChild(div);
-  });
+  // 其他歌曲
+  list.slice(3).forEach(drawCardScroll);
 }
 
-/* -------------------------------
-   歌詞查詢（Vercel API 或第三方）
---------------------------------*/
+function drawCardTop3(t) {
+  const div = document.createElement("div");
+  div.className = "result-card";
+  div.innerHTML = cardHTML(t);
+  top3.appendChild(div);
+}
+
+function drawCardScroll(t) {
+  const div = document.createElement("div");
+  div.className = "result-card";
+  div.innerHTML = cardHTML(t);
+  scrollArea.appendChild(div);
+}
+
+/* ===== 卡片 HTML ===== */
+function cardHTML(track) {
+  const artist = track.artists[0].name;
+  const title = track.name;
+  const preview = track.preview_url;
+
+  return `
+    <strong>${title}</strong><br>
+    歌手：${artist}<br><br>
+
+    <button onclick="loadLyrics('${artist}', '${title}')">歌詞</button>
+
+    ${
+      preview
+        ? `<button style="margin-left:10px" onclick="playPreview('${preview}')">試聽</button>`
+        : `<span style="margin-left:10px; color:#888">無試聽</span>`
+    }
+  `;
+}
+
+/* ===== 試聽 ===== */
+function playPreview(url) {
+  const audio = document.getElementById("audioPlayer");
+  audio.style.display = "block";
+  audio.src = url;
+  audio.play();
+}
+
+/* ===== 歌詞 API ===== */
 async function loadLyrics(artist, title) {
-  document.getElementById("lyrics").innerHTML = "<span class='spinner'></span> 取得歌詞中…";
+  lyrics.innerHTML = "<span class='spinner'></span> 取得歌詞…";
 
-  // 你可換成自己的 API，例如：
-  // const url = `https://你的.vercel.app/api/lyrics?...`;
-
-  const url = `https://api-song-lyrics.vercel.app/lyrics?song=${encodeURIComponent(title)}&artist=${encodeURIComponent(artist)}`;
+  const url =
+    `https://api-song-lyrics.vercel.app/lyrics?song=${encodeURIComponent(title)}&artist=${encodeURIComponent(artist)}`;
 
   const res = await fetch(url);
   const data = await res.json();
 
-  document.getElementById("lyrics").innerText =
-    data.lyrics || "找不到歌詞";
+  lyrics.innerText = data.lyrics || "找不到歌詞";
 }
 
-/* -------------------------------
-   自動解析 token
---------------------------------*/
+/* ===== 自動解析 Token ===== */
 (async function () {
-  const params = new URLSearchParams(window.location.search);
-  if (params.get("code")) {
-    await fetchAccessToken(params.get("code"));
+  const code = new URLSearchParams(location.search).get("code");
+  if (code) {
+    await fetchAccessToken(code);
     history.replaceState({}, "", "music.html");
   }
 })();
 </script>
-
 </body>
 </html>
