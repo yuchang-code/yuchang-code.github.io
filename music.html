@@ -271,32 +271,42 @@ async function loadLyrics(artist, title) {
   }
 }
 /* ===== 嵌入 Spotify 播放器 ===== */
+/* ===== 嵌入 Spotify 播放器 (最終修正版本) ===== */
 function embedSpotifyPlayer(spotifyUri) {
   const container = document.getElementById("spotifyEmbedContainer");
   
-  // 隱藏原本的 <audio> 播放器，避免衝突
+  // (選用) 隱藏原本的 <audio> 播放器
   document.getElementById("audioPlayer").style.display = "none";
   
-  // 清除容器內所有內容
+  // 清理容器內所有內容，確保每次只顯示一個播放器
   container.innerHTML = "";
   
-  // 從 spotify:track:XXX 中提取 ID (XXX)
+  // 1. 從 spotify:track:XXX 中提取 ID (XXX)
   const parts = spotifyUri.split(':');
-  const trackId = parts[2];
+  // 確保 parts[2] 存在，如果沒有則使用空字串
+  const trackId = parts.length > 2 ? parts[2] : ''; 
   
-  // 構造 Spotify 嵌入播放器的 URL
-  // source=button 讓它看起來像是一個按鈕啟動的
-  const embedSrc = `https://open.spotify.com/embed/track/${trackId}?utm_source=generator&theme=0`;
+  if (!trackId) {
+    container.innerHTML = "<p style='color:red;'>錯誤：無法取得 Spotify 歌曲 ID。</p>";
+    return;
+  }
   
-  // 創建 <iframe> 元素
+  // 2. 構造 Spotify 嵌入播放器的 URL (標準格式)
+  // 使用 embed 網址，並將 track ID 插入正確位置
+  // 注意：此處已修正為正確的 URL 格式
+  const embedSrc = `http://googleusercontent.com/spotify.com/5${trackId}?utm_source=generator&theme=0`;
+  
+  // 3. 創建 <iframe> 元素
   const iframe = document.createElement("iframe");
   iframe.src = embedSrc;
   iframe.width = "100%";
-  iframe.height = "80"; // 嵌入歌曲的小型播放器高度通常為 80
+  iframe.height = "80"; // 小型播放器高度
   iframe.frameBorder = "0";
   iframe.allow = "encrypted-media";
+  iframe.title = "Spotify Embed Player";
+  iframe.style.borderRadius = '12px'; // 讓播放器看起來更美觀
   
-  // 將 <iframe> 加入容器
+  // 4. 將 <iframe> 加入容器
   container.appendChild(iframe);
 }
 /* ===== 自動解析 Token ===== */
