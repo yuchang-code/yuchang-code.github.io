@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8" />
+<title>Spotify 音樂查詢 + 歌詞顯示</title>
+
+<style>
+body {
+  font-family: Arial, sans-serif;
+  padding: 20px;
+}
+
+input, button {
+  padding: 10px;
+  font-size: 16px;
+  margin: 5px 0;
+}
+
+#results div {
+  margin: 10px 0;
+  padding: 10px;
+  border: 1px solid #ccc;
+}
+</style>
+</head>
+<body>
+
+<h2>Spotify 音樂查詢（純前端 PKCE）</h2>
+
+<button onclick="loginWithSpotify()">登入 Spotify</button>
+
+<br><br>
+<input id="searchInput" placeholder="輸入歌曲或歌手名稱">
+<button onclick="searchSong()">搜尋</button>
+
+<div id="results"></div>
+
+<hr>
+
+<h2>歌詞查詢</h2>
+<div id="lyrics" style="white-space: pre-line;"></div>
+
+<script>
+// -------------------------------
+// 🔑 你的 Spotify App 設定
+// -------------------------------
+const clientId = "c1ed4bfc3fbd4fe4bacec9720af2aaed";   // <--- 你要去 Spotify Developer 填入
+const redirectUri = "https://yuchang-code.github.io/music.html";
+
+let accessToken = null;
+let codeVerifier = null;
+
+// -------------------------------
+// 產生 PKCE Code Verifier / Challenge
+// -------------------------------
+async function generateCodeVerifier() {
+  const array = new Uint32Array(56);
+  window.crypto.getRandomValues(array);
+  codeVerifier = Array.from(array, dec => ("0" + dec.toString(16)).slice(-2)).join("");
+  localStorage.setItem("code_verifier", codeVerifier);
+}
+
+async function sha256(str) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(str);
+  return await crypto.subtle.digest("SHA-256", data);
+}
+
+function base64urlencode(a) {
+  return btoa(String.fromCharCode.apply(null, new Uint8Array(a)))
+    .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+async function loginWithSpotify() {
+  await generateCodeVerifier();
+
+  const hashed = await sha256(codeVerifier);
+  const challenge = base64urlencode(hashed);
+
+  let authUrl = "https://accounts.spotify.com/authorize";
+  authUrl += "?response_type=code";
+  authUrl += "&client_id=" + clientId;
+  authUrl += "&code_challenge_method=S256";
+  authUrl += "&code_challenge=" + challenge;
+  authUrl += "&redirect_uri=" + encodeURIComponent(redirectUri);
+  authUrl += "&scope=user-read-private";
+
+  window.location = authUrl;
+}
+
+// -------------------------------
+// 取得 Access Token
+// -------------------------------
+async function fetchAccessToken(code) {
+  const verifier = localStorage.getItem("code_verifier");
+
+  const body = new URLSearchParams({
+    client_id: clientId,
+    grant_type: "authorization_code",
+    code: code,
+    redirect_uri: redirectUri,
+    code_verifier: verifier
+  });
+
+  const res = await fetch("https://accounts.spotify.com/api/token", {
+    method: "POST",
+    headers: {"Content-Type": "application/x-www-form-urlencoded"},
+    body: body
+  });
+
+  const data = await res.json();
+  accessToken = data.access_token;
+}
+
+// -------------------------------
+// 搜尋音樂
+// -------------------------------
+async function searchSong() {
+  const q = document.getElementById("searchInput").value;
+  if (!accessToken) {
+    alert("請先登入 Spotify");
+    return;
+  }
+
+  const url = `https://api.spotify.com/v1/search?q=${encodeURIComponent(q)}&type=track&limit=5`;
+
+  const res = await fetch(url, {
+    headers: { Authorization: "Bearer " + accessToken }
+  });
+
+  const data = await res.json();
+  const list = data.tracks.items;
+
+  const results = document.getElementById("results");
+  results.innerHTML = "";
+
+  list.forEach(track => {
+    const div = document.createElement("div");
+    div.innerHTML = `
+      <strong>${track.name}</strong><br>
+      歌手：${track.artists[0].name}<br>
+      <button onclick="loadLyrics('${track.artists[0].name}', '${track.name}')">顯示歌詞</button>
+    `;
+    results.appendChild(div);
+  });
+}
+
+// -------------------------------
+// 取得歌詞（使用 lyrics.ovh）
+// -------------------------------
+async function loadLyrics(artist, title) {
+  const url = `https://api.lyrics.ovh/v1/${artist}/${title}`;
+  
+  const res = await fetch(url);
+  const data = await res.json();
+
+  document.getElementById("lyrics").innerText =
+    data.lyrics || "找不到歌詞 :(";
+}
+
+// -------------------------------
+// 每次回到頁面自動解析 token
+// -------------------------------
+(async function() {
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get("code");
+  if (code) {
+    await fetchAccessToken(code);
+    history.replaceState({}, document.title, "music.html");
+  }
+})();
+</script>
+
+</body>
+</html>
