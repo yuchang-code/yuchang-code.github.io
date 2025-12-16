@@ -132,6 +132,7 @@ button {
 
 </div>
 <script>
+  let moveHistory = []; // 紀錄每一步 {x, y, color, stone}
 const board = document.getElementById("board");
 const size = 15;
 const gap = 30;
@@ -140,6 +141,8 @@ let currentPlayer = "black"; // black or white
 let isPlayerTurn = true;
 let gameOver = false; // ★ 用來避免勝負後繼續下棋
 let chess = Array.from({ length: size }, () => Array(size).fill(null));
+document.querySelector("button:nth-of-type(1)").onclick = undoMove;
+document.querySelector("button:nth-of-type(2)").onclick = restartGame;
 
 /* 選擇先後手 */
 if (!confirm("你要先手（黑棋）嗎？\n按取消則你後手（白棋）")) {
@@ -208,7 +211,38 @@ function placeStone(x, y, color) {
   stone.style.left = `${x * gap}px`;
   stone.style.top = `${y * gap}px`;
   board.appendChild(stone);
+
+  moveHistory.push({ x, y, color, stone });
 }
+function undoMove() {
+  if (moveHistory.length === 0 || gameOver) return;
+
+  // 電腦那一步
+  let last = moveHistory.pop();
+  board.removeChild(last.stone);
+  chess[last.y][last.x] = null;
+
+  // 玩家那一步
+  if (moveHistory.length > 0) {
+    last = moveHistory.pop();
+    board.removeChild(last.stone);
+    chess[last.y][last.x] = null;
+  }
+
+  gameOver = false;
+  isPlayerTurn = true;
+  currentPlayer = "black";
+}
+function restartGame() {
+  document.querySelectorAll(".stone").forEach(s => s.remove());
+
+  chess = Array.from({ length: size }, () => Array(size).fill(null));
+  moveHistory = [];
+  gameOver = false;
+  currentPlayer = "black";
+  isPlayerTurn = true;
+}
+
 
 /* 換手 */
 function switchTurn() {
