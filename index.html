@@ -64,6 +64,28 @@ body {
   transform: translate(-50%, -50%);
   cursor: pointer;
 }
+  .point::after {
+  content: "";
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.point.preview-black::after {
+  background: black;
+  opacity: 0.3;
+}
+
+.point.preview-white::after {
+  background: white;
+  border: 1px solid #000;
+  opacity: 0.5;
+}
+
 .stone {
   width: 24px;
   height: 24px;
@@ -81,11 +103,6 @@ body {
   border: 1px solid #000;
 }
 
-/* hover 預覽 */
-.point::after {
-  width: 24px;
-  height: 24px;
-}
 
 
 /* 星位 */
@@ -110,6 +127,7 @@ button {
   padding: 10px;
   font-size: 16px;
 }
+  
 </style>
 </head>
 
@@ -171,8 +189,22 @@ for (let y = 0; y < size; y++) {
     point.className = "point";
     point.style.left = `${x * gap}px`;
     point.style.top = `${y * gap}px`;
+    
+    point.addEventListener("mouseenter", () => {
+      if (!isPlayerTurn || gameOver) return;
+      if (chess[y][x]) return;
+    
+      point.classList.add(
+        currentPlayer === "black" ? "preview-black" : "preview-white"
+      );
+    });
+    
+    point.addEventListener("mouseleave", () => {
+      point.classList.remove("preview-black", "preview-white");
+    });
 
     point.addEventListener("click", () => {
+      point.classList.remove("preview-black", "preview-white");
       if (!isPlayerTurn || gameOver) return;
       if (chess[y][x]) return;
 
