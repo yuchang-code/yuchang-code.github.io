@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>簡單計數器</title>
+    <style>
+        /* 這裡是 CSS：負責網頁的樣子 */
+        body {
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center; /* 水平置中 */
+            justify-content: center; /* 垂直置中 */
+            height: 100vh; /* 佔滿整個視窗高度 */
+            margin: 0;
+            background-color: #f0f2f5;
+        }
+
+        .container {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        h1 {
+            color: #333;
+            font-size: 1.5rem;
+        }
+
+        #display-number {
+            font-size: 4rem; /* 數字大一點 */
+            font-weight: bold;
+            color: #007bff; /* 藍色 */
+            margin: 20px 0;
+            display: block;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 15px 32px;
+            text-align: center;
+            font-size: 1.2rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #0056b3; /* 滑鼠移過去變深色 */
+        }
+        
+        button:active {
+            transform: scale(0.98); /* 按下去時稍微縮小 */
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>目前的數字</h1>
+        <span id="display-number">0</span>
+        <br>
+        <button onclick="addOne()">+1 點擊我</button>
+    </div>
+
+    <script>
+        // 這裡是 JavaScript：負責邏輯運算
+        
+        // 1. 設定初始數字為 0
+        let count = 0;
+
+        // 2. 這是點擊按鈕後會執行的動作
+        function addOne() {
+            // 數字加 1
+            count = count + 1; 
+
+            // 抓取網頁上 ID 為 "display-number" 的元素
+            const displayElement = document.getElementById('display-number');
+            
+            // 更新該元素的內容文字
+            displayElement.innerText = count;
+        }
+    </script>
+
+</body>
+</html>
