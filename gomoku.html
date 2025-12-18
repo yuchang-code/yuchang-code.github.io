@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<title>五子棋 AI</title>
+
+<style>
+body {
+  margin: 0;
+  background: #f0f0f0;
+  font-family: "微軟正黑體", Arial, sans-serif;
+}
+
+.container {
+  display: flex;
+  padding: 20px;
+}
+
+/* 左側棋盤 */
+.board-area {
+  flex: 3;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.board-wrapper {
+  padding: 28px;
+  background: linear-gradient(145deg, #e6c28a, #d2a867);
+  border-radius: 14px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+}
+
+.board {
+  position: relative;
+  width: 420px;
+  height: 420px;
+}
+
+/* 棋盤線 */
+.line.horizontal,
+.line.vertical {
+  position: absolute;
+  background: rgba(0,0,0,0.6);
+}
+
+.line.horizontal {
+  width: 420px;
+  height: 1px;
+}
+
+.line.vertical {
+  height: 420px;
+  width: 1px;
+}
+
+/* 交點 */
+.point {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  transform: translate(-50%, -50%);
+  cursor: pointer;
+}
+
+.point::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.point.preview-black::after {
+  background: black;
+  opacity: 0.3;
+  box-shadow: 0 0 8px rgba(0,0,0,0.4);
+}
+
+.point.preview-white::after {
+  background: white;
+  border: 1px solid #000;
+  opacity: 0.5;
+  box-shadow: 0 0 8px rgba(0,0,0,0.4);
+}
+
+/* 棋子 */
+.stone {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow:
+    inset -2px -2px 4px rgba(255,255,255,0.4),
+    inset 2px 2px 6px rgba(0,0,0,0.6),
+    0 4px 6px rgba(0,0,0,0.4);
+}
+
+.stone.black {
+  background: radial-gradient(circle at top left, #555, #000);
+}
+
+.stone.white {
+  background: radial-gradient(circle at top left, #fff, #ddd);
+}
+
+/* 星位 */
+.star {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  background: #000;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+/* 右側資訊 */
+.info-area {
+  flex: 1;
+  margin-left: 20px;
+  background: #fff;
+  padding: 20px;
+  border-radius: 16px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+}
+
+.info-area h2 {
+  margin-top: 0;
+  border-bottom: 2px solid #eee;
+  padding-bottom: 10px;
+}
+
+button {
+  width: 100%;
+  padding: 12px;
+  margin-top: 10px;
+  font-size: 16px;
+  border: none;
+  border-radius: 10px;
+  background: #333;
+  color: #fff;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+button:hover {
+  background: #000;
+  transform: translateY(-2px);
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+  <div class="board-area">
+    <div class="board-wrapper">
+      <div class="board" id="board"></div>
+    </div>
+  </div>
+
+  <div class="info-area">
+    <h2>遊戲資訊</h2>
+    <p>目前輪到：<strong id="turn">黑棋</strong></p>
+    <button id="undoBtn">悔棋</button>
+    <button id="restartBtn">重新開始</button>
+  </div>
+
+</div>
+
+<script>
+const board = document.getElementById("board");
+const turnText = document.getElementById("turn");
+const size = 15;
+const gap = 30;
+
+let currentPlayer = "black";
+let isPlayerTurn = true;
+let gameOver = false;
+let chess = Array.from({ length: size }, () => Array(size).fill(null));
+let moveHistory = [];
+
+/* 先後手 */
+if (!confirm("你要先手（黑棋）嗎？")) {
+  currentPlayer = "white";
+  isPlayerTurn = false;
+  setTimeout(computerMove, 500);
+}
+
+/* 畫線 */
+for (let i = 0; i < size; i++) {
+  const h = document.createElement("div");
+  h.className = "line horizontal";
+  h.style.top = `${i * gap + gap / 2}px`;
+  board.appendChild(h);
+
+  const v = document.createElement("div");
+  v.className = "line vertical";
+  v.style.left = `${i * gap + gap / 2}px`;
+  board.appendChild(v);
+}
+
+/* 交點 */
+for (let y = 0; y < size; y++) {
+  for (let x = 0; x < size; x++) {
+    const point = document.createElement("div");
+    point.className = "point";
+    point.style.left = `${x * gap + gap / 2}px`;
+    point.style.top  = `${y * gap + gap / 2}px`;
+
+    point.addEventListener("mouseenter", () => {
+      if (!isPlayerTurn || gameOver || chess[y][x]) return;
+      point.classList.add(
+        currentPlayer === "black" ? "preview-black" : "preview-white"
+      );
+    });
+
+    point.addEventListener("mouseleave", () => {
+      point.classList.remove("preview-black", "preview-white");
+    });
+
+    point.addEventListener("click", () => {
+      if (!isPlayerTurn || gameOver || chess[y][x]) return;
+      point.classList.remove("preview-black", "preview-white");
+
+      placeStone(x, y, currentPlayer);
+      chess[y][x] = currentPlayer;
+
+      if (checkWin(x, y, currentPlayer)) {
+        gameOver = true;
+        alert("你贏了！");
+        return;
+      }
+
+      switchTurn();
+      setTimeout(computerMove, 300);
+    });
+
+    board.appendChild(point);
+  }
+}
+
+/* 星位 */
+[[3,3],[3,11],[7,7],[11,3],[11,11]].forEach(([x,y]) => {
+  const s = document.createElement("div");
+  s.className = "star";
+  s.style.left = `${x * gap + gap / 2}px`;
+  s.style.top  = `${y * gap + gap / 2}px`;
+  board.appendChild(s);
+});
+
+/* 放棋 */
+function placeStone(x, y, color) {
+  const stone = document.createElement("div");
+  stone.className = `stone ${color}`;
+  stone.style.left = `${x * gap + gap / 2}px`;
+  stone.style.top  = `${y * gap + gap / 2}px`;
+  board.appendChild(stone);
+  moveHistory.push({ x, y, stone });
+}
+
+/* 換手 */
+function switchTurn() {
+  currentPlayer = currentPlayer === "black" ? "white" : "black";
+  isPlayerTurn = !isPlayerTurn;
+  turnText.textContent = currentPlayer === "black" ? "黑棋" : "白棋";
+}
+
+/* 勝負判斷 */
+function checkWin(x, y, color) {
+  const dirs = [[1,0],[0,1],[1,1],[1,-1]];
+  for (let [dx,dy] of dirs) {
+    let count = 1;
+    for (let d of [1,-1]) {
+      let nx = x + dx*d, ny = y + dy*d;
+      while (chess[ny]?.[nx] === color) {
+        count++; nx += dx*d; ny += dy*d;
+      }
+    }
+    if (count >= 5) return true;
+  }
+  return false;
+}
+
+/* 評分 */
+function evaluate(x, y, color) {
+  const dirs = [[1,0],[0,1],[1,1],[1,-1]];
+  let best = 0;
+  for (let [dx,dy] of dirs) {
+    let c = 1;
+    for (let d of [1,-1]) {
+      let nx = x + dx*d, ny = y + dy*d;
+      while (chess[ny]?.[nx] === color) {
+        c++; nx += dx*d; ny += dy*d;
+      }
+    }
+    best = Math.max(best, c);
+  }
+  return best;
+}
+
+/* AI 下棋 */
+function computerMove() {
+  if (isPlayerTurn || gameOver) return;
+
+  let best = -1, move = null;
+  for (let y=0;y<size;y++) for (let x=0;x<size;x++) {
+    if (chess[y][x]) continue;
+    let s = Math.max(
+      evaluate(x,y,currentPlayer)*2,
+      evaluate(x,y,currentPlayer==="black"?"white":"black")*1.8
+    );
+    if (s > best) { best = s; move = [x,y]; }
+  }
+
+  if (!move) return;
+  const [x,y] = move;
+  placeStone(x,y,currentPlayer);
+  chess[y][x] = currentPlayer;
+
+  if (checkWin(x,y,currentPlayer)) {
+    gameOver = true;
+    alert("AI 勝利！");
+    return;
+  }
+  switchTurn();
+}
+
+/* 悔棋 */
+document.getElementById("undoBtn").onclick = () => {
+  if (moveHistory.length < 2) return;
+  for (let i=0;i<2;i++) {
+    const m = moveHistory.pop();
+    board.removeChild(m.stone);
+    chess[m.y][m.x] = null;
+  }
+  gameOver = false;
+  isPlayerTurn = true;
+  currentPlayer = "black";
+  turnText.textContent = "黑棋";
+};
+
+/* 重新開始 */
+document.getElementById("restartBtn").onclick = () => location.reload();
+</script>
+
+</body>
+</html>
