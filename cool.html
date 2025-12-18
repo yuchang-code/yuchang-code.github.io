@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<title>五子棋</title>
+
+<style>
+/* ===== 基本樣式 ===== */
+body {
+  margin: 0;
+  background: #f0f0f0;
+  font-family: "微軟正黑體", Arial, sans-serif;
+}
+.container {
+  display: flex;
+  padding: 20px;
+}
+
+/* ===== 棋盤區 ===== */
+.board-area {
+  flex: 3;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.board-wrapper {
+  padding: 30px;
+  background: #ddb87d;
+}
+.board {
+  position: relative;
+  width: 420px;
+  height: 420px;
+}
+
+/* 棋盤線 */
+.line.horizontal,
+.line.vertical {
+  position: absolute;
+  background: #333;
+}
+.line.horizontal { width: 420px; height: 1px; }
+.line.vertical { height: 420px; width: 1px; }
+
+/* 交點 */
+.point {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  transform: translate(-50%, -50%);
+  cursor: pointer;
+}
+.point::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+}
+.point.preview-black::after {
+  background: black;
+  opacity: 0.3;
+}
+.point.preview-white::after {
+  background: white;
+  border: 1px solid #000;
+  opacity: 0.5;
+}
+
+/* 棋子 */
+.stone {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  position: absolute;
+  transform: translate(-50%, -50%);
+}
+.stone.black { background: black; }
+.stone.white {
+  background: white;
+  border: 1px solid #000;
+}
+
+/* 星位 */
+.star {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  background: #000;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+/* ===== 落子特效（十字光） ===== */
+.effect {
+  position: absolute;
+  width: 60px;
+  height: 60px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+.effect::before,
+.effect::after {
+  content: "";
+  position: absolute;
+  background: rgba(255,255,255,0.9);
+  box-shadow: 0 0 12px white;
+  animation: flash 0.4s ease-out forwards;
+}
+.effect::before {
+  width: 60px;
+  height: 2px;
+  top: 50%;
+}
+.effect::after {
+  width: 2px;
+  height: 60px;
+  left: 50%;
+}
+@keyframes flash {
+  from { opacity: 1; }
+  to { opacity: 0; transform: scale(1.5); }
+}
+
+/* ===== 右側資訊區 ===== */
+.info-area {
+  flex: 1;
+  margin-left: 24px;
+  background: linear-gradient(180deg, #fff, #f6f6f6);
+  padding: 24px;
+  border-radius: 12px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+}
+.info-area h2 {
+  text-align: center;
+  letter-spacing: 3px;
+}
+.info-area p {
+  font-size: 18px;
+  margin: 20px 0;
+}
+.info-area button {
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 12px;
+  font-size: 16px;
+  border: none;
+  border-radius: 8px;
+  background: #333;
+  color: white;
+  cursor: pointer;
+  transition: 0.2s;
+}
+.info-area button:hover {
+  background: #000;
+  transform: translateY(-2px);
+}
+
+/* ===== 勝利動畫 ===== */
+#winEffect {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(circle, rgba(255,255,255,0.9), rgba(0,0,0,0.9));
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 48px;
+  color: white;
+  letter-spacing: 6px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.6s;
+  z-index: 999;
+}
+#winEffect.show {
+  opacity: 1;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+  <div class="board-area">
+    <div class="board-wrapper">
+      <div class="board" id="board"></div>
+    </div>
+  </div>
+
+  <div class="info-area">
+    <h2>遊戲資訊</h2>
+    <p>目前輪到：<strong id="turnText">黑棋</strong></p>
+    <button id="undoBtn">悔棋</button>
+    <button id="restartBtn">重新開始</button>
+  </div>
+</div>
+
+<div id="winEffect"></div>
+
+<script>
+const board = document.getElementById("board");
+const turnText = document.getElementById("turnText");
+const size = 15;
+const gap = 30;
+
+let currentPlayer = "black";
+let isPlayerTurn = true;
+let gameOver = false;
+let chess = Array.from({ length: size }, () => Array(size).fill(null));
+let moveHistory = [];
+
+/* 先後手 */
+if (!confirm("你要先手（黑棋）嗎？")) {
+  currentPlayer = "white";
+  isPlayerTurn = false;
+  setTimeout(computerMove, 500);
+}
+
+/* 畫棋盤 */
+for (let i = 0; i < size; i++) {
+  const h = document.createElement("div");
+  h.className = "line horizontal";
+  h.style.top = `${i * gap}px`;
+  board.appendChild(h);
+
+  const v = document.createElement("div");
+  v.className = "line vertical";
+  v.style.left = `${i * gap}px`;
+  board.appendChild(v);
+}
+
+/* 交點 */
+for (let y = 0; y < size; y++) {
+  for (let x = 0; x < size; x++) {
+    const p = document.createElement("div");
+    p.className = "point";
+    p.style.left = `${x * gap}px`;
+    p.style.top = `${y * gap}px`;
+
+    p.onmouseenter = () => {
+      if (!isPlayerTurn || gameOver || chess[y][x]) return;
+      p.classList.add(currentPlayer === "black" ? "preview-black" : "preview-white");
+    };
+    p.onmouseleave = () => p.classList.remove("preview-black", "preview-white");
+
+    p.onclick = () => {
+      if (!isPlayerTurn || gameOver || chess[y][x]) return;
+      p.classList.remove("preview-black", "preview-white");
+      placeStone(x, y, currentPlayer);
+      chess[y][x] = currentPlayer;
+
+      if (checkWin(x, y, currentPlayer)) {
+        gameOver = true;
+        showWin(currentPlayer === "black" ? "黑棋 勝利" : "白棋 勝利");
+        return;
+      }
+
+      switchTurn();
+      setTimeout(computerMove, 300);
+    };
+    board.appendChild(p);
+  }
+}
+
+/* 星位 */
+[[3,3],[3,11],[7,7],[11,3],[11,11]].forEach(([x,y]) => {
+  const s = document.createElement("div");
+  s.className = "star";
+  s.style.left = `${x * gap}px`;
+  s.style.top = `${y * gap}px`;
+  board.appendChild(s);
+});
+
+/* 放棋 */
+function placeStone(x, y, color) {
+  const stone = document.createElement("div");
+  stone.className = `stone ${color}`;
+  stone.style.left = `${x * gap}px`;
+  stone.style.top = `${y * gap}px`;
+  board.appendChild(stone);
+
+  const effect = document.createElement("div");
+  effect.className = "effect";
+  effect.style.left = `${x * gap}px`;
+  effect.style.top = `${y * gap}px`;
+  board.appendChild(effect);
+  setTimeout(() => effect.remove(), 400);
+
+  moveHistory.push({ x, y, stone });
+}
+
+/* 換手 */
+function switchTurn() {
+  currentPlayer = currentPlayer === "black" ? "white" : "black";
+  isPlayerTurn = !isPlayerTurn;
+  turnText.textContent = currentPlayer === "black" ? "黑棋" : "白棋";
+}
+
+/* 勝負 */
+function checkWin(x, y, c) {
+  const dirs = [[1,0],[0,1],[1,1],[1,-1]];
+  for (let [dx,dy] of dirs) {
+    let count = 1;
+    for (let i=1; chess[y+dy*i]?.[x+dx*i]===c; i++) count++;
+    for (let i=1; chess[y-dy*i]?.[x-dx*i]===c; i++) count++;
+    if (count >= 5) return true;
+  }
+  return false;
+}
+
+/* 勝利動畫 */
+function showWin(text) {
+  const win = document.getElementById("winEffect");
+  win.textContent = text;
+  win.classList.add("show");
+}
+
+/* 簡易電腦 */
+function computerMove() {
+  if (isPlayerTurn || gameOver) return;
+  for (let y=0;y<size;y++) {
+    for (let x=0;x<size;x++) {
+      if (!chess[y][x]) {
+        placeStone(x,y,currentPlayer);
+        chess[y][x]=currentPlayer;
+        if (checkWin(x,y,currentPlayer)) {
+          gameOver = true;
+          showWin(currentPlayer==="black"?"黑棋 勝利":"白棋 勝利");
+          return;
+        }
+        switchTurn();
+        return;
+      }
+    }
+  }
+}
+
+/* 按鈕 */
+undoBtn.onclick = () => location.reload();
+restartBtn.onclick = () => location.reload();
+</script>
+</body>
+</html>
