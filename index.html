@@ -320,20 +320,34 @@ function checkWin(x, y, color) {
   return false;
 }
 
-/* 電腦下棋（簡單隨機） */
 function computerMove() {
   if (isPlayerTurn || gameOver) return;
 
-  let empty = [];
+  let bestScore = -1;
+  let bestMove = null;
+
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
-      if (!chess[y][x]) empty.push([x, y]);
+      if (chess[y][x]) continue;
+
+      // AI 自己
+      let aiScore = evaluatePoint(x, y, currentPlayer);
+      // 擋玩家
+      let blockScore = evaluatePoint(
+        x, y, currentPlayer === "black" ? "white" : "black"
+      );
+
+      let score = Math.max(aiScore * 2, blockScore * 1.8);
+
+      if (score > bestScore) {
+        bestScore = score;
+        bestMove = [x, y];
+      }
     }
   }
 
-  if (empty.length === 0) return;
-
-  const [x, y] = empty[Math.floor(Math.random() * empty.length)];
+  if (!bestMove) return;
+  const [x, y] = bestMove;
 
   placeStone(x, y, currentPlayer);
   chess[y][x] = currentPlayer;
@@ -346,6 +360,31 @@ function computerMove() {
 
   switchTurn();
 }
+
+  function evaluatePoint(x, y, color) {
+  const dirs = [
+    [1,0],[0,1],[1,1],[1,-1]
+  ];
+  let score = 0;
+
+  for (let [dx, dy] of dirs) {
+    let count = 1;
+
+    let nx = x + dx, ny = y + dy;
+    while (chess[ny]?.[nx] === color) {
+      count++; nx += dx; ny += dy;
+    }
+
+    nx = x - dx; ny = y - dy;
+    while (chess[ny]?.[nx] === color) {
+      count++; nx -= dx; ny -= dy;
+    }
+
+    score = Math.max(score, count);
+  }
+  return score;
+}
+
 </script>
 
 
