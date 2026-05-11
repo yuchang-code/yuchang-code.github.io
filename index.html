@@ -135,7 +135,6 @@
             <div class="theme-btn" onclick="switchToList('技能')">主題：技能</div>
             <div class="theme-btn" onclick="switchToList('特質')">主題：特質</div>
         </div>
-        <button class="reload-cache-btn" onclick="forceReloadData()">🔄 同步雲端最新資料</button>
     </div>
 
     <div id="page-list" class="page">
@@ -179,61 +178,36 @@
         // 🌟 請在這裡填入你最新的、以 /exec 結尾的 Google Apps Script 部署網址！
         const GAS_URL = "https://script.google.com/macros/s/AKfycbzFdiVTqT5QxCJPdCRLDHGn_tKrpIJ82LlmRKLYkrFRxCxSu1n9lnwXA_bOtTOYzRe7Fg/exec"; 
 
-        let exhibitionData = null; // 存放全站資料
-        let currentCategory = "";  // 記錄目前在看哪個分類
-        let currentMedal = null;   // 記錄目前在看哪面獎牌
-        let showingDraft = false;
+        let exhibitionData = null;
+let currentCategory = "";
+let currentMedal = null;
+let showingDraft = false;
 
-        // ─── 核心功能：首次載入與快取判斷 ───
-        async function initData() {
-            const cachedData = localStorage.getItem('exhibitionData');
-            
-            if (cachedData) {
-                try {
-                    exhibitionData = JSON.parse(cachedData);
-                    // 防呆：確認快取內真的有 images 資料，避免舊快取殘留格式錯誤
-                    if (exhibitionData && exhibitionData.images) {
-                        console.log("⚡ 成功讀取本地快取資料，不驚動 Google API！");
-                        return;
-                    }
-                } catch (e) {
-                    console.log("快取解析失敗，重新下載中...");
-                }
-            }
-            
-            // 快取不存在或格式不合，前往下載
-            await fetchFromGoogle();
-        }
+// --------------------
+// 只載入一次
+// --------------------
+async function initData() {
+    const cachedData = localStorage.getItem('exhibitionData');
 
-        // 實際向 Google 請求資料 (不帶任何 action 參數，執行一次性大打包)
-        async function fetchFromGoogle() {
-            const loader = document.getElementById('loader');
-            loader.style.display = 'flex';
-            loader.style.opacity = '1';
-            document.getElementById('loader-text').innerText = "首次進入，正在從雲端載入展館資料...";
+    if (cachedData) {
+        exhibitionData = JSON.parse(cachedData);
+        return;
+    }
 
-            try {
-                const response = await fetch(GAS_URL);
-                exhibitionData = await response.json();
-                
-                // 存入快取
-                localStorage.setItem('exhibitionData', JSON.stringify(exhibitionData));
-                console.log("☁ 首次進入：已從 Google 雲端同步並存入快取！");
+    await fetchFromGoogle();
+}
 
-                // 隱藏載入畫面
-                loader.style.opacity = '0';
-                setTimeout(() => loader.style.display = 'none', 500);
-            } catch (e) {
-                document.getElementById('loader-text').innerText = "載入失敗，請確認你的網路、GAS網址及權限！";
-                console.error("載入出錯:", e);
-            }
-        }
+async function fetchFromGoogle() {
+    const loader = document.getElementById('loader');
+    loader.style.display = 'flex';
 
-        // 手動強制更新
-        function forceReloadData() {
-            localStorage.removeItem('exhibitionData');
-            fetchFromGoogle();
-        }
+    const res = await fetch(GAS_URL);
+    exhibitionData = await res.json();
+
+    localStorage.setItem('exhibitionData', JSON.stringify(exhibitionData));
+
+    loader.style.display = 'none';
+}
 
         // ─── 路由切換控制 (SPA 頁面切換) ───
         function showPage(pageId) {
@@ -249,60 +223,43 @@
         function switchToList(category) {
             currentCategory = category;
             document.getElementById('list-title').innerText = "主題：" + category;
-            
+        
             const container = document.getElementById('list-container');
             container.innerHTML = "";
-
-            if (!exhibitionData || !exhibitionData.images) {
-                container.innerHTML = "<div style='grid-column:1/-1; text-align:center;'>資料尚未完全就緒，請點擊首頁「同步雲端最新資料」按鈕重試。</div>";
-                showPage('page-list');
-                return;
-            }
-
-            // 篩選對應分類的成品圖 (GAS端已自動幫我們過濾掉「_草圖」)
-            const filteredImages = exhibitionData.images.filter(img => img.category === category);
-
-            if (filteredImages.length === 0) {
-                container.innerHTML = "<div style='grid-column:1/-1; text-align:center;'>此分類目前沒有獎牌照片喔！</div>";
-            } else {
-                filteredImages.forEach(item => {
-                    container.innerHTML += `
-                        <div class="item-card" onclick="switchToDetail('${item.name}', '${item.url}')">
-                            <div class="img-placeholder">
-                                <img src="${item.url}" alt="${item.name}">
-                            </div>
-                            <div style="font-weight: bold; font-size: 18px;">${item.name}</div>
+        
+            const list = exhibitionData.images.filter(i => i.category === category);
+        
+            list.forEach(item => {
+                container.innerHTML += `
+                    <div class="item-card" onclick="switchToDetail('${item.name}', '${item.url}')">
+                        <div class="img-placeholder">
+                            <img src="${item.url}">
                         </div>
-                    `;
-                });
-            }
+                        <div>${item.name}</div>
+                    </div>
+                `;
+            });
+        
             showPage('page-list');
         }
 
-        function switchToDetail(name, imgUrl) {
-            currentMedal = { name: name, url: imgUrl };
+       function switchToDetail(name, imgUrl) {
+            currentMedal = { name, url: imgUrl };
             showingDraft = false;
-
+        
+            const data = exhibitionData.texts[name] || {
+                concept: "暫無資料",
+                interview: "暫無資料",
+                draftUrl: ""
+            };
+        
             document.getElementById('medal-name').innerText = name;
             document.getElementById('medal-img').src = imgUrl;
-
-            const draftBtn = document.getElementById('draft-btn');
-            draftBtn.innerText = "切換草圖設計";
-            draftBtn.classList.remove('active');
-
-            let detailText = { concept: "暫無作品理念資訊。", interview: "暫無採訪內容資訊。", draftUrl: "" };
-
-            // 從大包資料中，用作品名稱找出試算表的文字與草圖網址
-            if (exhibitionData && exhibitionData.texts && exhibitionData.texts[name]) {
-                detailText = exhibitionData.texts[name];
-            }
-
-            document.getElementById('concept-text').innerText = detailText.concept;
-            document.getElementById('interview-text').innerText = detailText.interview;
-            
-            // 將草圖網址綁定到目前作品
-            currentMedal.draftUrl = detailText.draftUrl;
-
+            document.getElementById('concept-text').innerText = data.concept;
+            document.getElementById('interview-text').innerText = data.interview;
+        
+            currentMedal.draftUrl = data.draftUrl;
+        
             showPage('page-detail');
         }
 
