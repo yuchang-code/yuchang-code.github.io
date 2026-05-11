@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>獎牌列表</title>
+    <style>
+        :root { --maroon: #8b203c; --pink: #d68197; }
+        body { margin: 0; background-color: #f9f9f9; font-family: sans-serif; }
+        header { 
+            background: var(--maroon); color: white; padding: 20px; 
+            text-align: center; font-size: 32px; font-weight: bold;
+        }
+        .grid {
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px;
+            padding: 40px; max-width: 1200px; margin: 0 auto;
+        }
+        .item-card {
+            background-color: var(--pink); border-radius: 20px; padding: 15px;
+            text-align: center; color: white; cursor: pointer; text-decoration: none;
+            transition: 0.3s;
+        }
+        .item-card:hover { background-color: #c46d84; }
+        .img-placeholder {
+            background: #fff; width: 100%; aspect-ratio: 1/1; 
+            border-radius: 15px; margin-bottom: 10px;
+            display: flex; align-items: center; justify-content: center; color: var(--pink);
+        }
+        .img-placeholder img { width: 100%; height: 100%; object-fit: cover; border-radius: 15px; }
+    </style>
+</head>
+<body>
+    <header id="title">物件</header>
+    <div class="grid" id="list-container">
+        </div>
+
+    <script>
+        // 取得網址參數
+        const urlParams = new URLSearchParams(window.location.search);
+        const type = urlParams.get('type') || '物件';
+        document.getElementById('title').innerText = type;
+
+        // 模擬撈取資料 (實際運作時請串接你的 Apps Script URL)
+        async function fetchMedals() {
+            // const response = await fetch('你的AppsScript網址?type=' + type);
+            // const data = await response.json();
+            
+            // 這裡先用迴圈生成 8 個示意卡片
+            const container = document.getElementById('list-container');
+            for(let i=1; i<=8; i++) {
+                container.innerHTML += `
+                    <a href="detail.html?id=${i}" class="item-card">
+                        <div class="img-placeholder">獎牌圖片</div>
+                        <div>獎牌名稱 ${i}</div>
+                    </a>
+                `;
+            }
+        }
+        fetchMedals();
+    </script>
+</body>
+</html>
