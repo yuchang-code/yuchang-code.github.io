@@ -5,28 +5,135 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>獎牌詳情</title>
     <style>
-        :root { --maroon: #8b203c; --pink: #d68197; }
-        body { margin: 0; height: 100vh; display: flex; align-items: center; justify-content: center; font-family: sans-serif; background-color: #f5f5f5; }
-        .detail-container { display: flex; width: 90%; max-width: 1100px; gap: 40px; align-items: stretch; }
+        :root { 
+            --maroon: #8b203c; 
+            --pink: #d68197; 
+            --light-pink: #fdf5f7;
+        }
+        body { 
+            margin: 0; 
+            min-height: 100vh; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            font-family: "Microsoft JhengHei", sans-serif; 
+            background-color: #f5f5f5; 
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        .detail-container { 
+            display: flex; 
+            width: 100%; 
+            max-width: 1100px; 
+            gap: 40px; 
+            background: white;
+            padding: 30px;
+            border-radius: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            align-items: stretch; 
+        }
         
         /* 左側大圖區 */
         .main-image-box {
-            flex: 2; background-color: var(--pink); border-radius: 30px;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            color: white; min-height: 500px; padding: 20px; box-sizing: border-box; text-align: center;
+            flex: 1.2; 
+            background-color: var(--pink); 
+            border-radius: 20px;
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center;
+            color: white; 
+            min-height: 450px; 
+            padding: 20px; 
+            box-sizing: border-box; 
+            text-align: center;
         }
-        .main-image-box img { max-width: 100%; max-height: 350px; border-radius: 20px; object-fit: contain; }
-        .medal-title { font-size: 32px; font-weight: bold; margin-top: 15px; }
+        .main-image-box img { 
+            max-width: 100%; 
+            max-height: 350px; 
+            border-radius: 15px; 
+            object-fit: contain; 
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        }
+        .medal-title { 
+            font-size: 28px; 
+            font-weight: bold; 
+            margin-top: 20px; 
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.2);
+        }
         
-        /* 右側按鈕區 */
-        .action-sidebar { flex: 1; display: flex; flex-direction: column; gap: 20px; }
-        .action-btn {
-            background-color: var(--maroon); color: white; border: none;
-            padding: 25px; border-radius: 20px; font-size: 22px; font-weight: bold;
-            cursor: pointer; transition: 0.3s; text-align: center; text-decoration: none;
+        /* 右側詳細文字與控制區 */
+        .content-sidebar { 
+            flex: 1; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 20px; 
         }
-        .action-btn:hover { opacity: 0.8; transform: translateX(5px); }
-        .back-btn { margin-top: auto; background: #666; font-size: 16px; padding: 15px; }
+
+        /* 資訊卡片區（直接呈現理念與採訪） */
+        .info-card {
+            background-color: var(--light-pink);
+            border-left: 5px solid var(--maroon);
+            padding: 20px;
+            border-radius: 0 15px 15px 0;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .info-section h3 {
+            margin: 0 0 5px 0;
+            color: var(--maroon);
+            font-size: 18px;
+            border-bottom: 1px dashed var(--pink);
+            padding-bottom: 5px;
+        }
+        .info-section p {
+            margin: 0;
+            color: #444;
+            font-size: 15px;
+            line-height: 1.6;
+            white-space: pre-line; /* 保留試算表中的換行 */
+        }
+
+        /* 控制按鈕區 */
+        .button-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        .action-btn {
+            background-color: var(--maroon); 
+            color: white; 
+            border: none;
+            padding: 15px; 
+            border-radius: 12px; 
+            font-size: 16px; 
+            font-weight: bold;
+            cursor: pointer; 
+            transition: 0.3s; 
+            text-align: center; 
+            text-decoration: none;
+        }
+        .action-btn:hover { 
+            background-color: #b03554;
+            transform: translateY(-2px); 
+        }
+        .action-btn.active {
+            background-color: var(--pink);
+        }
+        .back-btn { 
+            background: #666; 
+        }
+        .back-btn:hover {
+            background: #555;
+        }
+
+        /* 響應式：手機版改為上下排列 */
+        @media (max-width: 768px) {
+            .detail-container { flex-direction: column; }
+            .main-image-box { min-height: 300px; }
+        }
     </style>
 </head>
 <body>
@@ -36,11 +143,22 @@
             <div class="medal-title" id="medal-name">載入中...</div>
         </div>
         
-        <div class="action-sidebar">
-            <button class="action-btn" onclick="showConcept()">作品<br>理念</button>
-            <button class="action-btn" onclick="showInterview()">採訪<br>內容</button>
-            <button class="action-btn" onclick="showDraft()">草圖<br>設計</button>
-            <a href="javascript:history.back()" class="action-btn back-btn">回上一頁</a>
+        <div class="content-sidebar">
+            <div class="info-card">
+                <div class="info-section">
+                    <h3>💡 作品理念</h3>
+                    <p id="concept-text">正在載入作品理念...</p>
+                </div>
+                <div class="info-section">
+                    <h3>🎤 採訪內容</h3>
+                    <p id="interview-text">正在載入採訪內容...</p>
+                </div>
+            </div>
+
+            <div class="button-group">
+                <button class="action-btn" id="draft-btn" onclick="toggleDraft()">切換草圖設計</button>
+                <a href="javascript:history.back()" class="action-btn back-btn">回上一頁</a>
+            </div>
         </div>
     </div>
 
@@ -50,48 +168,49 @@
         // 解析網址參數
         const urlParams = new URLSearchParams(window.location.search);
         const medalName = urlParams.get('name');
-        const defaultImg = urlParams.get('img'); // 從列表頁帶過來的預設成品圖
+        const defaultImg = urlParams.get('img'); // 成品圖
 
-        // 儲存從試算表撈回來的詳細資料
         let medalDetail = {};
+        let showingDraft = false;
 
-        // 初始化頁面
+        // 初始化基本資訊
         document.getElementById('medal-name').innerText = medalName;
         document.getElementById('medal-img').src = defaultImg;
 
-        // 向 GAS 請求試算表中的詳細資料
+        // 向 GAS 請求試算表中的詳細文字
         async function loadDetail() {
             try {
                 const response = await fetch(`${GAS_URL}?action=getDetail&name=${encodeURIComponent(medalName)}`);
                 medalDetail = await response.json();
+                
+                // 直接將資料塞入對應的 HTML 標籤中
+                document.getElementById('concept-text').innerText = medalDetail.concept || "暫無作品理念資料。";
+                document.getElementById('interview-text').innerText = medalDetail.interview || "暫無採訪內容資料。";
             } catch (e) {
                 console.error("無法載入詳細資料:", e);
+                document.getElementById('concept-text').innerText = "載入失敗，請確認網路連線。";
+                document.getElementById('interview-text').innerText = "載入失敗，請確認網路連線。";
             }
         }
 
-        // 1. 按鈕功能：顯示作品理念
-        function showConcept() {
-            alert(`【作品理念】\n\n${medalDetail.concept || "載入中，請稍候..."}`);
-        }
-
-        // 2. 按鈕功能：顯示採訪內容
-        function showInterview() {
-            alert(`【採訪內容】\n\n${medalDetail.interview || "載入中，請稍候..."}`);
-        }
-
-        // 3. 按鈕功能：切換草圖 (點擊後切換圖片，再點一次切換回成品圖)
-        let showingDraft = false;
-        function showDraft() {
+        // 切換草圖與成品圖
+        function toggleDraft() {
             const imgElement = document.getElementById('medal-img');
+            const draftBtn = document.getElementById('draft-btn');
+
             if (!showingDraft) {
                 if (medalDetail.draftUrl) {
                     imgElement.src = medalDetail.draftUrl;
+                    draftBtn.innerText = "看成品設計";
+                    draftBtn.classList.add('active');
                     showingDraft = true;
                 } else {
-                    alert("此獎牌尚未上傳草圖設計。");
+                    alert("此獎牌尚未上傳草圖設計！");
                 }
             } else {
-                imgElement.src = defaultImg; // 切換回成品圖
+                imgElement.src = defaultImg;
+                draftBtn.innerText = "切換草圖設計";
+                draftBtn.classList.remove('active');
                 showingDraft = false;
             }
         }
