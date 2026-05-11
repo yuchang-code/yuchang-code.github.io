@@ -40,20 +40,28 @@
         const type = urlParams.get('type') || '物件';
         document.getElementById('title').innerText = type;
 
-        // 模擬撈取資料 (實際運作時請串接你的 Apps Script URL)
-        async function fetchMedals() {
-            // const response = await fetch('你的AppsScript網址?type=' + type);
-            // const data = await response.json();
-            
-            // 這裡先用迴圈生成 8 個示意卡片
+       async function fetchMedals() {
+            const GAS_URL = "https://script.google.com/macros/s/AKfycbzFdiVTqT5QxCJPdCRLDHGn_tKrpIJ82LlmRKLYkrFRxCxSu1n9lnwXA_bOtTOYzRe7Fg/exec"; 
             const container = document.getElementById('list-container');
-            for(let i=1; i<=8; i++) {
-                container.innerHTML += `
-                    <a href="detail.html?id=${i}" class="item-card">
-                        <div class="img-placeholder">獎牌圖片</div>
-                        <div>獎牌名稱 ${i}</div>
-                    </a>
-                `;
+            container.innerHTML = "正在從雲端搬運獎牌...";
+        
+            try {
+                const response = await fetch(`${GAS_URL}?type=${type}`);
+                const data = await response.json();
+                
+                container.innerHTML = ""; // 清空載入文字
+                data.forEach(item => {
+                    container.innerHTML += `
+                        <a href="detail.html?name=${item.name}&img=${item.url}" class="item-card">
+                            <div class="img-placeholder">
+                                <img src="${item.url}" alt="${item.name}">
+                            </div>
+                            <div>${item.name}</div>
+                        </a>
+                    `;
+                });
+            } catch (e) {
+                container.innerHTML = "載入失敗，請確認資料夾權限或網址是否正確。";
             }
         }
         fetchMedals();
