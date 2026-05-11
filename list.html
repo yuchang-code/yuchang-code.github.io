@@ -8,8 +8,9 @@
         :root { --maroon: #8b203c; --pink: #d68197; }
         body { margin: 0; background-color: #f9f9f9; font-family: sans-serif; }
         header { 
-            background: var(--maroon); color: white; padding: 20px; 
-            text-align: center; font-size: 32px; font-weight: bold;
+            background: var(--maroon) url('./header.png') center/cover; 
+            height: 200px; display: flex; align-items: center; justify-content: center;
+            color: white; font-size: 40px; font-weight: bold; letter-spacing: 5px;
         }
         .grid {
             display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px;
