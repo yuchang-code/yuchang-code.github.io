@@ -56,8 +56,10 @@
         /* 清除快取重整按鈕 */
         .reload-cache-btn {
             display: block; margin: 20px auto; background: #666; color: white;
-            border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer;
+            border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer;
+            font-size: 15px; font-weight: bold; transition: 0.3s;
         }
+        .reload-cache-btn:hover { background: #555; }
 
         /* ---------------- 2. 列表頁樣式 ---------------- */
         .header-bar {
@@ -133,6 +135,7 @@
             <div class="theme-btn" onclick="switchToList('技能')">主題：技能</div>
             <div class="theme-btn" onclick="switchToList('特質')">主題：特質</div>
         </div>
+        <button class="reload-cache-btn" onclick="forceReloadData()">🔄 同步雲端最新資料</button>
     </div>
 
     <div id="page-list" class="page">
@@ -173,7 +176,7 @@
     </div>
 
     <script>
-        // 1. 填入你的 Apps Script 網址 (記得使用一次打包所有資料的 GAS 版本)
+        // 🌟 請在這裡填入你最新的、以 /exec 結尾的 Google Apps Script 部署網址！
         const GAS_URL = "https://script.google.com/macros/s/AKfycbzFdiVTqT5QxCJPdCRLDHGn_tKrpIJ82LlmRKLYkrFRxCxSu1n9lnwXA_bOtTOYzRe7Fg/exec"; 
 
         let exhibitionData = null; // 存放全站資料
@@ -186,16 +189,23 @@
             const cachedData = localStorage.getItem('exhibitionData');
             
             if (cachedData) {
-                // 第二次以後進來：直接讀取快取，0.01 秒完成
-                exhibitionData = JSON.parse(cachedData);
-                console.log("⚡ 成功讀取本地快取資料，不驚動 Google API！");
-            } else {
-                // 第一次進來：顯示載入畫面，去 Google 撈資料
-                await fetchFromGoogle();
+                try {
+                    exhibitionData = JSON.parse(cachedData);
+                    // 防呆：確認快取內真的有 images 資料，避免舊快取殘留格式錯誤
+                    if (exhibitionData && exhibitionData.images) {
+                        console.log("⚡ 成功讀取本地快取資料，不驚動 Google API！");
+                        return;
+                    }
+                } catch (e) {
+                    console.log("快取解析失敗，重新下載中...");
+                }
             }
+            
+            // 快取不存在或格式不合，前往下載
+            await fetchFromGoogle();
         }
 
-        // 實際向 Google 請求資料
+        // 實際向 Google 請求資料 (不帶任何 action 參數，執行一次性大打包)
         async function fetchFromGoogle() {
             const loader = document.getElementById('loader');
             loader.style.display = 'flex';
@@ -219,12 +229,11 @@
             }
         }
 
-        // 提供手動強制更新的按鈕功能（當你在試算表改了文字、雲端改了圖片，點這個可以一鍵同步）
+        // 手動強制更新
         function forceReloadData() {
             localStorage.removeItem('exhibitionData');
             fetchFromGoogle();
         }
-
 
         // ─── 路由切換控制 (SPA 頁面切換) ───
         function showPage(pageId) {
@@ -233,12 +242,10 @@
             window.scrollTo(0, 0);
         }
 
-        // 回首頁
         function switchToHome() {
             showPage('page-home');
         }
 
-        // 首頁點擊分類 $\rightarrow$ 進列表頁
         function switchToList(category) {
             currentCategory = category;
             document.getElementById('list-title').innerText = "主題：" + category;
@@ -246,13 +253,13 @@
             const container = document.getElementById('list-container');
             container.innerHTML = "";
 
-            if (!exhibitionData) {
-                container.innerHTML = "<div style='grid-column:1/-1; text-align:center;'>尚未取得資料，請回首頁重試。</div>";
+            if (!exhibitionData || !exhibitionData.images) {
+                container.innerHTML = "<div style='grid-column:1/-1; text-align:center;'>資料尚未完全就緒，請點擊首頁「同步雲端最新資料」按鈕重試。</div>";
                 showPage('page-list');
                 return;
             }
 
-            // 篩選對應分類的圖片
+            // 篩選對應分類的成品圖 (GAS端已自動幫我們過濾掉「_草圖」)
             const filteredImages = exhibitionData.images.filter(img => img.category === category);
 
             if (filteredImages.length === 0) {
@@ -272,7 +279,6 @@
             showPage('page-list');
         }
 
-        // 列表頁點擊卡片 $\rightarrow$ 進詳細頁
         function switchToDetail(name, imgUrl) {
             currentMedal = { name: name, url: imgUrl };
             showingDraft = false;
@@ -280,35 +286,31 @@
             document.getElementById('medal-name').innerText = name;
             document.getElementById('medal-img').src = imgUrl;
 
-            // 重設草圖按鈕狀態
             const draftBtn = document.getElementById('draft-btn');
             draftBtn.innerText = "切換草圖設計";
             draftBtn.classList.remove('active');
 
-            // 預設查無資料
             let detailText = { concept: "暫無作品理念資訊。", interview: "暫無採訪內容資訊。", draftUrl: "" };
 
-            // 從快取資料中比對文字
+            // 從大包資料中，用作品名稱找出試算表的文字與草圖網址
             if (exhibitionData && exhibitionData.texts && exhibitionData.texts[name]) {
                 detailText = exhibitionData.texts[name];
             }
 
-            // 把對應文字塞到畫面上
             document.getElementById('concept-text').innerText = detailText.concept;
             document.getElementById('interview-text').innerText = detailText.interview;
             
-            // 暫存目前的草圖連結
+            // 將草圖網址綁定到目前作品
             currentMedal.draftUrl = detailText.draftUrl;
 
             showPage('page-detail');
         }
 
-        // 從詳細頁退回列表頁
         function backToList() {
             switchToList(currentCategory);
         }
 
-        // ─── 詳細頁功能 ───
+        // ─── 草圖切換 ───
         function toggleDraft() {
             const imgElement = document.getElementById('medal-img');
             const draftBtn = document.getElementById('draft-btn');
@@ -320,7 +322,7 @@
                     draftBtn.classList.add('active');
                     showingDraft = true;
                 } else {
-                    alert("此獎牌尚未在試算表中填寫草圖設計ID！");
+                    alert("在雲端硬碟中找不到對應的「" + currentMedal.name + "_草圖」圖片！");
                 }
             } else {
                 imgElement.src = currentMedal.url;
@@ -330,7 +332,7 @@
             }
         }
 
-        // 啟動初始化程序
+        // 啟動程序
         initData();
     </script>
 </body>
