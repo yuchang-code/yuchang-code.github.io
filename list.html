@@ -8,9 +8,38 @@
         :root { --maroon: #8b203c; --pink: #d68197; }
         body { margin: 0; background-color: #f9f9f9; font-family: sans-serif; }
         header { 
-            background: var(--maroon) url('./header.png') center/cover; 
-            height: 200px; display: flex; align-items: center; justify-content: center;
-            color: white; font-size: 40px; font-weight: bold; letter-spacing: 5px;
+            background: var(--maroon); 
+            color: white; 
+            padding: 20px; 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative; /* 讓內部的絕對定位按鈕可以對齊 */
+            min-height: 40px;
+        }
+        .header-title {
+            font-size: 32px; 
+            font-weight: bold;
+            margin: 0;
+        }
+
+        /* 回首頁按鈕樣式 */
+        .home-btn {
+            position: absolute;
+            left: 20px;
+            background-color: var(--pink);
+            color: white;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 12px;
+            font-weight: bold;
+            font-size: 16px;
+            transition: 0.3s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .home-btn:hover {
+            background-color: #c46d84;
+            transform: translateY(-2px);
         }
         .grid {
             display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px;
@@ -31,7 +60,10 @@
     </style>
 </head>
 <body>
-    <header id="title">物件</header>
+    <header>
+        <a href="index.html" class="home-btn">🏠 回首頁</a>
+        <div class="header-title" id="title">分類載入中...</div>
+    </header>
     <div class="grid" id="list-container">
         </div>
 
