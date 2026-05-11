@@ -133,7 +133,6 @@
             <div class="theme-btn" onclick="switchToList('技能')">主題：技能</div>
             <div class="theme-btn" onclick="switchToList('特質')">主題：特質</div>
         </div>
-        <button class="reload-cache-btn" onclick="forceReloadData()">🔄 強制同步雲端最新資料</button>
     </div>
 
     <div id="page-list" class="page">
@@ -175,7 +174,7 @@
 
     <script>
         // 1. 填入你的 Apps Script 網址 (記得使用一次打包所有資料的 GAS 版本)
-        const GAS_URL = "你的AppsScript網址"; 
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbzFdiVTqT5QxCJPdCRLDHGn_tKrpIJ82LlmRKLYkrFRxCxSu1n9lnwXA_bOtTOYzRe7Fg/exec"; 
 
         let exhibitionData = null; // 存放全站資料
         let currentCategory = "";  // 記錄目前在看哪個分類
