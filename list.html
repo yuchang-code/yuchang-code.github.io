@@ -8,39 +8,17 @@
         :root { --maroon: #8b203c; --pink: #d68197; }
         body { margin: 0; background-color: #f9f9f9; font-family: sans-serif; }
         header { 
-            background: var(--maroon); 
-            color: white; 
-            padding: 20px; 
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            position: relative; /* 讓內部的絕對定位按鈕可以對齊 */
-            min-height: 40px;
+            background: var(--maroon); color: white; padding: 20px; 
+            display: flex; align-items: center; justify-content: center;
+            position: relative; min-height: 40px;
         }
-        .header-title {
-            font-size: 32px; 
-            font-weight: bold;
-            margin: 0;
-        }
-
-        /* 回首頁按鈕樣式 */
+        .header-title { font-size: 32px; font-weight: bold; margin: 0; }
         .home-btn {
-            position: absolute;
-            left: 20px;
-            background-color: var(--pink);
-            color: white;
-            text-decoration: none;
-            padding: 10px 20px;
-            border-radius: 12px;
-            font-weight: bold;
-            font-size: 16px;
-            transition: 0.3s;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            position: absolute; left: 20px; background-color: var(--pink); color: white;
+            text-decoration: none; padding: 10px 20px; border-radius: 12px;
+            font-weight: bold; font-size: 16px; transition: 0.3s;
         }
-        .home-btn:hover {
-            background-color: #c46d84;
-            transform: translateY(-2px);
-        }
+        .home-btn:hover { background-color: #c46d84; transform: translateY(-2px); }
         .grid {
             display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px;
             padding: 40px; max-width: 1200px; margin: 0 auto;
@@ -50,54 +28,62 @@
             text-align: center; color: white; cursor: pointer; text-decoration: none;
             transition: 0.3s;
         }
-        .item-card:hover { background-color: #c46d84; }
+        .item-card:hover { background-color: #c46d84; transform: translateY(-5px); }
         .img-placeholder {
             background: #fff; width: 100%; aspect-ratio: 1/1; 
             border-radius: 15px; margin-bottom: 10px;
-            display: flex; align-items: center; justify-content: center; color: var(--pink);
+            display: flex; align-items: center; justify-content: center; overflow: hidden;
         }
-        .img-placeholder img { width: 100%; height: 100%; object-fit: cover; border-radius: 15px; }
+        .img-placeholder img { width: 100%; height: 100%; object-fit: contain; }
+        
+        @media (max-width: 1024px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 600px) { .grid { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
+    
     <header>
         <a href="index.html" class="home-btn">🏠 回首頁</a>
         <div class="header-title" id="title">分類載入中...</div>
     </header>
-    <div class="grid" id="list-container">
-        </div>
+
+    <div class="grid" id="list-container"></div>
 
     <script>
-        // 取得網址參數
         const urlParams = new URLSearchParams(window.location.search);
         const type = urlParams.get('type') || '物件';
-        document.getElementById('title').innerText = type;
+        document.getElementById('title').innerText = "主題：" + type;
 
-       async function fetchMedals() {
-            const GAS_URL = "https://script.google.com/macros/s/AKfycbzFdiVTqT5QxCJPdCRLDHGn_tKrpIJ82LlmRKLYkrFRxCxSu1n9lnwXA_bOtTOYzRe7Fg/exec"; 
+        function displayMedals() {
             const container = document.getElementById('list-container');
-            container.innerHTML = "正在從雲端搬運獎牌...";
-        
-            try {
-                const response = await fetch(`${GAS_URL}?action=getList&type=${type}`);
-                const data = await response.json();
-                
-                container.innerHTML = ""; // 清空載入文字
-                data.forEach(item => {
-                    container.innerHTML += `
-                        <a href="detail.html?name=${item.name}&img=${item.url}" class="item-card">
-                            <div class="img-placeholder">
-                                <img src="${item.url}" alt="${item.name}">
-                            </div>
-                            <div>${item.name}</div>
-                        </a>
-                    `;
-                });
-            } catch (e) {
-                container.innerHTML = "載入失敗，請確認資料夾權限或網址是否正確。";
+            
+            // 從快取讀取
+            const rawData = localStorage.getItem('exhibitionData');
+            if (!rawData) {
+                container.innerHTML = "<div style='grid-column: 1/-1; text-align:center;'>尚未載入任何資料，請回首頁。</div>";
+                return;
             }
+
+            const data = JSON.parse(rawData);
+            // 篩選出符合目前主題的圖片
+            const filteredImages = data.images.filter(img => img.category === type);
+
+            if(filteredImages.length === 0) {
+                container.innerHTML = "<div style='grid-column: 1/-1; text-align:center;'>此分類目前沒有獎牌照片喔！</div>";
+                return;
+            }
+
+            container.innerHTML = filteredImages.map(item => `
+                <a href="detail.html?name=${encodeURIComponent(item.name)}&img=${encodeURIComponent(item.url)}" class="item-card">
+                    <div class="img-placeholder">
+                        <img src="${item.url}" alt="${item.name}">
+                    </div>
+                    <div style="font-weight: bold; font-size: 18px;">${item.name}</div>
+                </a>
+            `).join('');
         }
-        fetchMedals();
+
+        displayMedals();
     </script>
 </body>
 </html>
