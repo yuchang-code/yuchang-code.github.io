@@ -6,44 +6,97 @@
     <title>獎牌詳情</title>
     <style>
         :root { --maroon: #8b203c; --pink: #d68197; }
-        body { margin: 0; height: 100vh; display: flex; align-items: center; justify-content: center; font-family: sans-serif; }
-        .detail-container {
-            display: flex; width: 90%; max-width: 1100px; gap: 40px; align-items: stretch;
-        }
+        body { margin: 0; height: 100vh; display: flex; align-items: center; justify-content: center; font-family: sans-serif; background-color: #f5f5f5; }
+        .detail-container { display: flex; width: 90%; max-width: 1100px; gap: 40px; align-items: stretch; }
+        
         /* 左側大圖區 */
-        .main-image {
+        .main-image-box {
             flex: 2; background-color: var(--pink); border-radius: 30px;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            color: white; font-size: 60px; min-height: 500px;
+            color: white; min-height: 500px; padding: 20px; box-sizing: border-box; text-align: center;
         }
-        .main-image span { font-size: 24px; margin-top: 20px; }
+        .main-image-box img { max-width: 100%; max-height: 350px; border-radius: 20px; object-fit: contain; }
+        .medal-title { font-size: 32px; font-weight: bold; margin-top: 15px; }
         
         /* 右側按鈕區 */
-        .action-sidebar {
-            flex: 1; display: flex; flex-direction: column; gap: 20px;
-        }
+        .action-sidebar { flex: 1; display: flex; flex-direction: column; gap: 20px; }
         .action-btn {
             background-color: var(--maroon); color: white; border: none;
-            padding: 30px; border-radius: 20px; font-size: 24px;
-            cursor: pointer; transition: 0.3s; text-align: center;
-            text-decoration: none;
+            padding: 25px; border-radius: 20px; font-size: 22px; font-weight: bold;
+            cursor: pointer; transition: 0.3s; text-align: center; text-decoration: none;
         }
-        .action-btn:hover { opacity: 0.8; transform: translateX(10px); }
+        .action-btn:hover { opacity: 0.8; transform: translateX(5px); }
         .back-btn { margin-top: auto; background: #666; font-size: 16px; padding: 15px; }
     </style>
 </head>
 <body>
     <div class="detail-container">
-        <div class="main-image">
-            獎牌圖片
-            <span>獎牌詳細說明文字...</span>
+        <div class="main-image-box">
+            <img id="medal-img" src="" alt="獎牌圖片">
+            <div class="medal-title" id="medal-name">載入中...</div>
         </div>
+        
         <div class="action-sidebar">
-            <button class="action-btn" onclick="alert('顯示作品理念')">作品<br>理念</button>
-            <button class="action-btn" onclick="alert('顯示採訪內容')">採訪<br>內容</button>
-            <button class="action-btn" onclick="alert('顯示草圖設計')">草圖<br>設計</button>
+            <button class="action-btn" onclick="showConcept()">作品<br>理念</button>
+            <button class="action-btn" onclick="showInterview()">採訪<br>內容</button>
+            <button class="action-btn" onclick="showDraft()">草圖<br>設計</button>
             <a href="javascript:history.back()" class="action-btn back-btn">回上一頁</a>
         </div>
     </div>
+
+    <script>
+        const GAS_URL = "你的AppsScript網址"; 
+        
+        // 解析網址參數
+        const urlParams = new URLSearchParams(window.location.search);
+        const medalName = urlParams.get('name');
+        const defaultImg = urlParams.get('img'); // 從列表頁帶過來的預設成品圖
+
+        // 儲存從試算表撈回來的詳細資料
+        let medalDetail = {};
+
+        // 初始化頁面
+        document.getElementById('medal-name').innerText = medalName;
+        document.getElementById('medal-img').src = defaultImg;
+
+        // 向 GAS 請求試算表中的詳細資料
+        async function loadDetail() {
+            try {
+                const response = await fetch(`${GAS_URL}?action=getDetail&name=${encodeURIComponent(medalName)}`);
+                medalDetail = await response.json();
+            } catch (e) {
+                console.error("無法載入詳細資料:", e);
+            }
+        }
+
+        // 1. 按鈕功能：顯示作品理念
+        function showConcept() {
+            alert(`【作品理念】\n\n${medalDetail.concept || "載入中，請稍候..."}`);
+        }
+
+        // 2. 按鈕功能：顯示採訪內容
+        function showInterview() {
+            alert(`【採訪內容】\n\n${medalDetail.interview || "載入中，請稍候..."}`);
+        }
+
+        // 3. 按鈕功能：切換草圖 (點擊後切換圖片，再點一次切換回成品圖)
+        let showingDraft = false;
+        function showDraft() {
+            const imgElement = document.getElementById('medal-img');
+            if (!showingDraft) {
+                if (medalDetail.draftUrl) {
+                    imgElement.src = medalDetail.draftUrl;
+                    showingDraft = true;
+                } else {
+                    alert("此獎牌尚未上傳草圖設計。");
+                }
+            } else {
+                imgElement.src = defaultImg; // 切換回成品圖
+                showingDraft = false;
+            }
+        }
+
+        loadDetail();
+    </script>
 </body>
 </html>
