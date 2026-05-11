@@ -47,7 +47,7 @@
             container.innerHTML = "正在從雲端搬運獎牌...";
         
             try {
-                const response = await fetch(`${GAS_URL}?type=${type}`);
+                const response = await fetch(`${GAS_URL}?action=getList&type=${type}`);
                 const data = await response.json();
                 
                 container.innerHTML = ""; // 清空載入文字
