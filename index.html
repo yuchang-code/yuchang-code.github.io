@@ -169,7 +169,7 @@
                     </div>
                 </div>
                 <div class="button-group">
-                    <button class="action-btn" id="draft-btn" onclick="toggleDraft()">切換封面設計</button>
+                    <button class="action-btn" id="draft-btn" onclick="toggleDraft()">看草稿</button>
                     <button class="action-btn back-btn" onclick="backToList()">回列表頁</button>
                 </div>
             </div>
@@ -281,11 +281,11 @@ async function fetchFromGoogle() {
                     draftBtn.classList.add('active');
                     showingDraft = true;
                 } else {
-                    alert("在雲端硬碟中找不到對應的「" + currentMedal.name + "_封面設計」圖片！");
+                    alert("在雲端硬碟中找不到對應的「" + currentMedal.name + "_草稿」圖片！");
                 }
             } else {
                 imgElement.src = currentMedal.url;
-                draftBtn.innerText = "切換封面設計";
+                draftBtn.innerText = "看草稿";
                 draftBtn.classList.remove('active');
                 showingDraft = false;
             }
