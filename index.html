@@ -38,7 +38,6 @@
         /* ---------------- 1. 首頁樣式 ---------------- */
         header { 
             background: var(--maroon); 
-            background-image: url("./header.png");
             height: 200px; display: flex; align-items: center; justify-content: center;
             color: white; font-size: 40px; font-weight: bold; letter-spacing: 5px;
         }
@@ -54,7 +53,6 @@
         }
         .theme-btn:hover { transform: scale(1.05); background-color: #c46d84; }
 
-        /* 清除快取重整按鈕 */
         .reload-cache-btn {
             display: block; margin: 20px auto; background: #666; color: white;
             border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer;
@@ -65,7 +63,6 @@
         /* ---------------- 2. 列表頁樣式 ---------------- */
         .header-bar {
             background: var(--maroon); color: white; padding: 20px; 
-            background-image: url("./header.png");
             display: flex; align-items: center; justify-content: center; position: relative; min-height: 40px;
         }
         .header-title { font-size: 32px; font-weight: bold; margin: 0; }
@@ -113,6 +110,15 @@
         }
         .action-btn:hover { background-color: #b03554; }
         .action-btn.active { background-color: var(--pink); }
+        
+        /* 🌟 新增：當按鈕被禁用（暗掉）時的樣式 */
+        .action-btn:disabled {
+            background-color: #ccc !important;
+            color: #888 !important;
+            cursor: not-allowed !important;
+            box-shadow: none !important;
+            transform: none !important;
+        }
         .back-btn { background: #666; }
 
         @media (max-width: 768px) {
@@ -130,13 +136,14 @@
     </div>
 
     <div id="page-home" class="page active">
-        <header>家 族 偉 人 誌</header>
+        <header>數 位 展 覽 館</header>
         <div class="home-grid">
             <div class="theme-btn" onclick="switchToList('物件')">主題：物件</div>
             <div class="theme-btn" onclick="switchToList('配件')">主題：配件</div>
             <div class="theme-btn" onclick="switchToList('技能')">主題：技能</div>
             <div class="theme-btn" onclick="switchToList('特質')">主題：特質</div>
         </div>
+        <button class="reload-cache-btn" onclick="forceReloadData()">🔄 同步雲端最新資料</button>
     </div>
 
     <div id="page-list" class="page">
@@ -169,7 +176,7 @@
                     </div>
                 </div>
                 <div class="button-group">
-                    <button class="action-btn" id="draft-btn" onclick="toggleDraft()">看草稿</button>
+                    <button class="action-btn" id="draft-btn" onclick="toggleDraft()">切換草稿設計</button>
                     <button class="action-btn back-btn" onclick="backToList()">回列表頁</button>
                 </div>
             </div>
@@ -177,121 +184,160 @@
     </div>
 
     <script>
-        // 🌟 請在這裡填入你最新的、以 /exec 結尾的 Google Apps Script 部署網址！
-        const GAS_URL = "https://script.google.com/macros/s/AKfycbzFdiVTqT5QxCJPdCRLDHGn_tKrpIJ82LlmRKLYkrFRxCxSu1n9lnwXA_bOtTOYzRe7Fg/exec"; 
+        // 🌟 請在這裡填入你最新部署的 GAS 網址
+        const GAS_URL = "你的AppsScript網址"; 
 
-        let exhibitionData = null;
-let currentCategory = "";
-let currentMedal = null;
-let showingDraft = false;
+        let exhibitionData = null; 
+        let currentCategory = "";  
+        let currentMedal = null;   
+        let currentDraftIndex = -1; // 🌟 新增：記錄當前觀看的草稿索引（-1 代表顯示成品圖）
 
-// --------------------
-// 只載入一次
-// --------------------
-async function initData() {
-    const cachedData = localStorage.getItem('exhibitionData');
+        async function initData() {
+            const cachedData = localStorage.getItem('exhibitionData');
+            if (cachedData) {
+                try {
+                    exhibitionData = JSON.parse(cachedData);
+                    if (exhibitionData && exhibitionData.images) {
+                        console.log("⚡ 成功讀取本地快取資料！");
+                        return;
+                    }
+                } catch (e) {
+                    console.log("快取解析失敗，重新下載中...");
+                }
+            }
+            await fetchFromGoogle();
+        }
 
-    if (cachedData) {
-        exhibitionData = JSON.parse(cachedData);
-        return;
-    }
+        async function fetchFromGoogle() {
+            const loader = document.getElementById('loader');
+            loader.style.display = 'flex';
+            loader.style.opacity = '1';
+            document.getElementById('loader-text').innerText = "首次進入，正在從雲端載入展館資料...";
 
-    await fetchFromGoogle();
-}
+            try {
+                const response = await fetch(GAS_URL);
+                exhibitionData = await response.json();
+                localStorage.setItem('exhibitionData', JSON.stringify(exhibitionData));
+                console.log("☁ 已從 Google 雲端同步並存入快取！");
+                loader.style.opacity = '0';
+                setTimeout(() => loader.style.display = 'none', 500);
+            } catch (e) {
+                document.getElementById('loader-text').innerText = "載入失敗，請確認網路與權限！";
+                console.error(e);
+            }
+        }
 
-async function fetchFromGoogle() {
-    const loader = document.getElementById('loader');
-    loader.style.display = 'flex';
+        function forceReloadData() {
+            localStorage.removeItem('exhibitionData');
+            fetchFromGoogle();
+        }
 
-    const res = await fetch(GAS_URL);
-    exhibitionData = await res.json();
-
-    localStorage.setItem('exhibitionData', JSON.stringify(exhibitionData));
-
-    loader.style.display = 'none';
-}
-
-        // ─── 路由切換控制 (SPA 頁面切換) ───
         function showPage(pageId) {
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
             document.getElementById(pageId).classList.add('active');
             window.scrollTo(0, 0);
         }
 
-        function switchToHome() {
-            showPage('page-home');
-        }
+        function switchToHome() { showPage('page-home'); }
 
         function switchToList(category) {
             currentCategory = category;
             document.getElementById('list-title').innerText = "主題：" + category;
-        
             const container = document.getElementById('list-container');
             container.innerHTML = "";
-        
-            const list = exhibitionData.images.filter(i => i.category === category);
-        
-            list.forEach(item => {
-                container.innerHTML += `
-                    <div class="item-card" onclick="switchToDetail('${item.name}', '${item.url}')">
-                        <div class="img-placeholder">
-                            <img src="${item.url}">
+
+            if (!exhibitionData || !exhibitionData.images) {
+                container.innerHTML = "<div style='grid-column:1/-1; text-align:center;'>資料尚未就緒。</div>";
+                showPage('page-list');
+                return;
+            }
+
+            const filteredImages = exhibitionData.images.filter(img => img.category === category);
+
+            if (filteredImages.length === 0) {
+                container.innerHTML = "<div style='grid-column:1/-1; text-align:center;'>此分類目前沒有照片喔！</div>";
+            } else {
+                filteredImages.forEach(item => {
+                    container.innerHTML += `
+                        <div class="item-card" onclick="switchToDetail('${item.name}', '${item.url}')">
+                            <div class="img-placeholder"><img src="${item.url}" alt="${item.name}"></div>
+                            <div style="font-weight: bold; font-size: 18px;">${item.name}</div>
                         </div>
-                        <div>${item.name}</div>
-                    </div>
-                `;
-            });
-        
+                    `;
+                });
+            }
             showPage('page-list');
         }
 
-       function switchToDetail(name, imgUrl) {
-            currentMedal = { name, url: imgUrl };
-            showingDraft = false;
-        
-            const data = exhibitionData.texts[name] || {
-                concept: "暫無資料",
-                interview: "暫無資料",
-                draftUrl: ""
-            };
-        
+        function switchToDetail(name, imgUrl) {
+            currentMedal = { name: name, url: imgUrl, draftUrls: [] };
+            currentDraftIndex = -1; // 預設進來顯示成品圖
+
             document.getElementById('medal-name').innerText = name;
             document.getElementById('medal-img').src = imgUrl;
-            document.getElementById('concept-text').innerText = data.concept;
-            document.getElementById('interview-text').innerText = data.interview;
-        
-            currentMedal.draftUrl = data.draftUrl;
-        
+
+            const draftBtn = document.getElementById('draft-btn');
+            let detailText = { concept: "暫無作品理念資訊。", interview: "暫無採訪內容資訊。", draftUrls: [] };
+
+            if (exhibitionData && exhibitionData.texts && exhibitionData.texts[name]) {
+                detailText = exhibitionData.texts[name];
+            }
+
+            document.getElementById('concept-text').innerText = detailText.concept;
+            document.getElementById('interview-text').innerText = detailText.interview;
+            
+            // 綁定該作品的所有草稿
+            currentMedal.draftUrls = detailText.draftUrls || [];
+
+            // 🌟 核心控制：判斷草稿張數來改變按鈕狀態
+            if (currentMedal.draftUrls.length === 0) {
+                draftBtn.innerText = "暫無草稿設計";
+                draftBtn.disabled = true; // 🌟 讓按鈕變暗且無法點擊
+                draftBtn.classList.remove('active');
+            } else {
+                draftBtn.disabled = false; // 啟用按鈕
+                draftBtn.innerText = `觀看草稿 (共 ${currentMedal.draftUrls.length} 張)`;
+                draftBtn.classList.remove('active');
+            }
+
             showPage('page-detail');
         }
 
-        function backToList() {
-            switchToList(currentCategory);
-        }
+        function backToList() { switchToList(currentCategory); }
 
-        // ─── 草圖切換 ───
+        // 🌟 核心改動：多張草稿多次切換邏輯
         function toggleDraft() {
+            if (!currentMedal || !currentMedal.draftUrls || currentMedal.draftUrls.length === 0) return;
+
             const imgElement = document.getElementById('medal-img');
             const draftBtn = document.getElementById('draft-btn');
 
-            if (!showingDraft) {
-                if (currentMedal.draftUrl) {
-                    imgElement.src = currentMedal.draftUrl;
-                    draftBtn.innerText = "看獎牌";
-                    draftBtn.classList.add('active');
-                    showingDraft = true;
-                } else {
-                    alert("在雲端硬碟中找不到對應的「" + currentMedal.name + "_草稿」圖片！");
-                }
-            } else {
+            currentDraftIndex++; // 索引值遞增
+
+            // 循環機制：如果數值超過最大草稿張數，就回到成品圖 (-1)
+            if (currentDraftIndex >= currentMedal.draftUrls.length) {
+                currentDraftIndex = -1;
+            }
+
+            if (currentDraftIndex === -1) {
+                // 顯示成品圖
                 imgElement.src = currentMedal.url;
-                draftBtn.innerText = "看草稿";
+                draftBtn.innerText = `觀看草稿 (共 ${currentMedal.draftUrls.length} 張)`;
                 draftBtn.classList.remove('active');
-                showingDraft = false;
+            } else {
+                // 顯示當前張數的草稿
+                imgElement.src = currentMedal.draftUrls[currentDraftIndex];
+                draftBtn.classList.add('active');
+                
+                // 動態更改按鈕文字提示使用者
+                if (currentDraftIndex === currentMedal.draftUrls.length - 1) {
+                    draftBtn.innerText = "返回成品設計 ↩";
+                } else {
+                    draftBtn.innerText = `看下一張草稿 (${currentDraftIndex + 1}/${currentMedal.draftUrls.length})`;
+                }
             }
         }
 
-        // 啟動程序
         initData();
     </script>
 </body>
