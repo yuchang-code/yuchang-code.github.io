@@ -65,10 +65,20 @@
             background: var(--maroon); color: white; padding: 20px; 
             display: flex; align-items: center; justify-content: center; position: relative; min-height: 40px;
         }
-        .header-title { font-size: 32px; font-weight: bold; margin: 0; }
+        .header-title { 
+            font-size: 32px; 
+            font-weight: bold; 
+            margin: 0; 
+            /* 🌟 核心修正：左右強行留出 130px 的護城河，標題太長會自動換行，絕對不會撞到按鈕 */
+            padding: 0 130px; 
+            text-align: center;
+            box-sizing: border-box;
+            width: 100%;
+        }
         .nav-btn {
             position: absolute; left: 20px; background-color: var(--pink); color: white;
             border: none; padding: 10px 20px; border-radius: 12px; font-weight: bold; font-size: 16px; cursor: pointer;
+            z-index: 10; /* 確保按鈕在最上層，不會被標題遮擋而無法點擊 */
         }
         .list-grid {
             display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; padding: 40px; max-width: 1200px; margin: 0 auto;
@@ -122,6 +132,19 @@
         .back-btn { background: #666; }
 
         @media (max-width: 768px) {
+            /* 🌟 手機版防撞微調：縮小標題字體，並縮減左右安全距離 */
+            .header-title { 
+                font-size: 20px !important; 
+                padding: 0 90px !important; 
+            }
+            /* 🌟 手機版按鈕稍微縮小，更省空間 */
+            .nav-btn { 
+                padding: 8px 12px !important; 
+                font-size: 14px !important; 
+                left: 10px !important; 
+            }
+            
+            /* 以下維持原本的響應式設定 */
             .home-grid { grid-template-columns: 1fr; padding: 20px; }
             .list-grid { grid-template-columns: repeat(2, 1fr); padding: 20px; }
             .detail-container { flex-direction: column; }
