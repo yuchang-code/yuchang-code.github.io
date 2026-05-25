@@ -268,50 +268,77 @@
             document.getElementById('list-title').innerText = "主題：" + category;
             const container = document.getElementById('list-container');
             container.innerHTML = "";
-
+        
             if (!exhibitionData || !exhibitionData.images) {
                 container.innerHTML = "<div style='grid-column:1/-1; text-align:center;'>資料尚未就緒。</div>";
                 showPage('page-list');
                 return;
             }
-
+        
             const filteredImages = exhibitionData.images.filter(img => img.category === category);
-
+        
             if (filteredImages.length === 0) {
                 container.innerHTML = "<div style='grid-column:1/-1; text-align:center;'>此分類目前沒有照片喔！</div>";
             } else {
+                // 💡 效能優化：用一個字串把所有卡片接起來，最後一次渲染，網頁會更流暢
+                let cardHtml = "";
+                
                 filteredImages.forEach(item => {
-                    container.innerHTML += `
+                    // 1. 🌟 從 texts 字典中，用「學生姓名」當 Key 撈出對應的文字資料
+                    const textData = exhibitionData.texts ? exhibitionData.texts[item.name] : null;
+                    
+                    // 2. 🌟 決定卡片標題：優先顯示「作品名稱」，如果試算表沒填，就退回顯示「學生姓名」
+                    const displayTitle = (textData && textData.artName) ? textData.artName : item.name;
+                    
+                    // 3. 🌟 額外小優化：如果顯示的是作品名稱，就在下方用灰色小字提示作者是誰
+                    const authorLabel = (textData && textData.artName) ? 
+                        `<div style="font-size: 14px; color: #666; margin-top: 4px;">作者：${item.name}</div>` : '';
+        
+                    cardHtml += `
                         <div class="item-card" onclick="switchToDetail('${item.name}', '${item.url}')">
-                            <div class="img-placeholder"><img src="${item.url}" alt="${item.name}"></div>
-                            <div style="font-weight: bold; font-size: 18px;">${item.name}</div>
+                            <div class="img-placeholder"><img src="${item.url}" alt="${displayTitle}"></div>
+                            <div style="font-weight: bold; font-size: 18px;">${displayTitle}</div>
+                            ${authorLabel}
                         </div>
                     `;
                 });
+                
+                container.innerHTML = cardHtml;
             }
             showPage('page-list');
         }
 
         function switchToDetail(name, imgUrl) {
+            // 💡 name 現在是學生姓名（唯一的 Key），我們保持它作為後台識別碼
             currentMedal = { name: name, url: imgUrl, draftUrls: [] };
             currentDraftIndex = -1; // 預設進來顯示成品圖
-
-            document.getElementById('medal-name').innerText = name;
-            document.getElementById('medal-img').src = imgUrl;
-
+        
             const draftBtn = document.getElementById('draft-btn');
-            let detailText = { concept: "暫無作品理念資訊。", interview: "暫無採訪內容資訊。", draftUrls: [] };
-
+            
+            // 1. 🌟 先建立預設文字結構（補上 artName 欄位）
+            let detailText = { artName: "", concept: "暫無作品理念資訊。", interview: "暫無採訪內容資訊。", draftUrls: [] };
+        
+            // 2. 🌟 移到前方：從 texts 字典中，用「學生姓名 (name)」撈出對應的完整試算表資料
             if (exhibitionData && exhibitionData.texts && exhibitionData.texts[name]) {
                 detailText = exhibitionData.texts[name];
             }
-
+        
+            // 3. 🌟 核心變更：詳細頁大標題優先顯示「作品名稱」，若沒填則顯示「學生姓名」
+            const displayTitle = detailText.artName ? detailText.artName : name;
+            document.getElementById('medal-name').innerText = displayTitle;
+        
+            // 💡 額外提示：如果你想在詳細頁也顯示作者是誰，且你的 HTML 有一格叫 id="medal-author" 的話，可以解開下方註解：
+            // if (document.getElementById('medal-author')) {
+            //     document.getElementById('medal-author').innerText = detailText.artName ? "作者：" + name : "";
+            // }
+        
+            document.getElementById('medal-img').src = imgUrl;
             document.getElementById('concept-text').innerText = detailText.concept;
             document.getElementById('interview-text').innerText = detailText.interview;
             
             // 綁定該作品的所有草稿
             currentMedal.draftUrls = detailText.draftUrls || [];
-
+        
             // 🌟 核心控制：判斷草稿張數來改變按鈕狀態
             if (currentMedal.draftUrls.length === 0) {
                 draftBtn.innerText = "暫無草稿設計";
@@ -322,7 +349,7 @@
                 draftBtn.innerText = `觀看草稿 (共 ${currentMedal.draftUrls.length} 張)`;
                 draftBtn.classList.remove('active');
             }
-
+        
             showPage('page-detail');
         }
 
