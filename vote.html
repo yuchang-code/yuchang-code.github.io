@@ -6,14 +6,14 @@
     <title>人氣票選展覽館</title>
     <style>
         :root { 
-            /* 🌟 全新風格：沉穩藝廊風 (深藍、暖金、米白) */
-            --primary-bg: #f4f4f5; 
-            --main-dark: #1e293b; /* 深藍灰 */
-            --accent-gold: #f59e0b; /* 暖金色 (主要動作) */
-            --accent-hover: #d97706;
+            /* 藝廊質感配色：深藍灰、高質感金、乾淨白 */
+            --primary-bg: #f8fafc; 
+            --main-dark: #0f172a; 
+            --accent-gold: #eab308; 
+            --accent-hover: #ca8a04;
             --card-bg: #ffffff;
-            --text-dark: #334155;
-            --text-light: #94a3b8;
+            --text-dark: #1e293b;
+            --text-light: #64748b;
         }
         body { 
             margin: 0; font-family: "Microsoft JhengHei", sans-serif; 
@@ -27,9 +27,9 @@
         /* ---------------- 載入動畫 ---------------- */
         #loader {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(30, 41, 59, 0.95); color: white;
+            background: rgba(15, 23, 42, 0.95); color: white;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            z-index: 999; font-size: 24px; transition: opacity 0.5s;
+            z-index: 999; font-size: 24px;
         }
         .spinner {
             border: 4px solid rgba(255,255,255,0.3); width: 50px; height: 50px;
@@ -40,80 +40,98 @@
 
         /* ---------------- 共用 Header ---------------- */
         header { 
-            background: var(--main-dark); height: 180px; 
+            background: var(--main-dark); height: 140px; 
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            color: white; font-size: 36px; font-weight: bold; letter-spacing: 3px;
+            color: white; font-size: 32px; font-weight: bold; letter-spacing: 3px;
         }
         .header-bar {
             background: var(--main-dark); color: white; padding: 15px; 
             display: flex; align-items: center; justify-content: center; position: relative; min-height: 40px;
         }
-        .header-title { font-size: 28px; font-weight: bold; margin: 0; padding: 0 130px; text-align: center; width: 100%; box-sizing: border-box; }
+        .header-title { font-size: 24px; font-weight: bold; margin: 0; padding: 0 130px; text-align: center; width: 100%; box-sizing: border-box; }
         .nav-btn {
             position: absolute; left: 20px; background-color: transparent; color: white;
             border: 2px solid white; padding: 8px 16px; border-radius: 8px; font-weight: bold; cursor: pointer; transition: 0.3s; z-index: 10;
         }
         .nav-btn:hover { background: white; color: var(--main-dark); }
 
-        /* 🌟 新增：懸浮投票狀態列 */
+        /* 懸浮投票狀態列 */
         .vote-status-bar {
-            background: var(--accent-gold); color: white; text-align: center; padding: 10px;
+            background: var(--accent-gold); color: var(--main-dark); text-align: center; padding: 10px;
             font-size: 16px; font-weight: bold; position: sticky; top: 0; z-index: 100;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
         }
 
         /* ---------------- 首頁/列表樣式 ---------------- */
         .home-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 40px; max-width: 1000px; margin: 0 auto; }
         .theme-btn {
-            background-color: var(--card-bg); color: var(--main-dark); height: 120px; 
+            background-color: var(--card-bg); color: var(--main-dark); height: 100px; 
             display: flex; align-items: center; justify-content: center; border: 2px solid #e2e8f0;
-            font-size: 24px; border-radius: 16px; cursor: pointer; transition: 0.3s; font-weight: bold;
+            font-size: 22px; border-radius: 16px; cursor: pointer; transition: 0.3s; font-weight: bold;
         }
-        .theme-btn:hover { border-color: var(--accent-gold); box-shadow: 0 10px 20px rgba(0,0,0,0.05); transform: translateY(-3px); }
+        .theme-btn:hover { border-color: var(--accent-gold); transform: translateY(-3px); }
 
         .list-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 25px; padding: 40px; max-width: 1200px; margin: 0 auto; }
         .item-card {
             background-color: var(--card-bg); border-radius: 16px; padding: 15px;
-            text-align: center; cursor: pointer; transition: 0.3s; box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            text-align: center; cursor: pointer; transition: 0.3s; box-shadow: 0 4px 6px rgba(0,0,0,0.02);
             border: 1px solid #e2e8f0;
         }
-        .item-card:hover { border-color: var(--accent-gold); transform: translateY(-5px); box-shadow: 0 10px 15px rgba(0,0,0,0.1); }
-        .img-placeholder { background: #f8fafc; width: 100%; aspect-ratio: 1/1; border-radius: 12px; margin-bottom: 12px; overflow: hidden; display: flex; align-items: center; justify-content: center;}
+        .item-card:hover { border-color: var(--accent-gold); transform: translateY(-5px); }
+        .img-placeholder { background: #f1f5f9; width: 100%; aspect-ratio: 1/1; border-radius: 12px; margin-bottom: 12px; overflow: hidden; display: flex; align-items: center; justify-content: center;}
         .img-placeholder img { width: 100%; height: 100%; object-fit: contain; }
         .card-title { font-weight: bold; font-size: 18px; color: var(--main-dark); }
         .card-author { font-size: 14px; color: var(--text-light); margin-top: 4px; }
 
-        /* ---------------- 詳細頁樣式 ---------------- */
+        /* ---------------- 3. 全新詳細頁樣式（左右/上下對比影像） ---------------- */
         .detail-container { 
-            display: flex; width: 90%; max-width: 1100px; gap: 40px; background: white;
-            padding: 30px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); margin: 30px auto; align-items: stretch; 
+            max-width: 1100px; margin: 30px auto; padding: 0 20px;
+            display: flex; flex-direction: column; gap: 30px;
         }
-        .main-image-box { flex: 1.2; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
-        .main-image-box img { max-width: 100%; max-height: 400px; border-radius: 12px; object-fit: contain; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        .medal-title { font-size: 30px; font-weight: bold; margin-top: 25px; color: var(--main-dark); }
-        
-        .content-sidebar { flex: 1; display: flex; flex-direction: column; gap: 20px; justify-content: space-between;}
-        .info-card { background-color: #f8fafc; border-left: 6px solid var(--main-dark); padding: 25px; border-radius: 8px; display: flex; flex-direction: column; gap: 20px; flex-grow:1;}
-        .info-section h3 { margin: 0; color: var(--main-dark); font-size: 18px; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; }
-        .info-section p { margin: 10px 0 0 0; font-size: 16px; line-height: 1.7; color: var(--text-dark); white-space: pre-line; }
-        
-        /* 🌟 投票按鈕樣式 */
+        /* 標題與作者區塊 */
+        .title-block { text-align: center; }
+        .medal-title { font-size: 32px; font-weight: bold; margin: 0; color: var(--main-dark); }
+        .medal-author { font-size: 18px; color: var(--text-light); margin-top: 8px; }
+
+        /* 雙圖對比區 */
+        .image-gallery-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 30px;
+        }
+        .image-viewer-box {
+            background: white; padding: 20px; border-radius: 20px;
+            border: 1px solid #e2e8f0; box-shadow: 0 10px 25px rgba(0,0,0,0.03);
+            display: flex; flex-direction: column; align-items: center;
+        }
+        .image-tag {
+            background: var(--main-dark); color: white; padding: 6px 16px;
+            border-radius: 30px; font-size: 14px; font-weight: bold; margin-bottom: 15px;
+        }
+        .image-viewer-box img {
+            width: 100%; max-height: 450px; object-fit: contain;
+            border-radius: 10px;
+        }
+
+        /* 投票按鈕控制 */
+        .action-block { max-width: 500px; width: 100%; margin: 10px auto 40px auto; }
         .vote-btn {
-            background-color: var(--accent-gold); color: white; border: none; padding: 20px; width: 100%;
-            border-radius: 12px; font-size: 20px; font-weight: bold; cursor: pointer; transition: 0.3s;
-            display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+            background-color: var(--accent-gold); color: var(--main-dark); border: none; padding: 20px; width: 100%;
+            border-radius: 16px; font-size: 22px; font-weight: bold; cursor: pointer; transition: 0.3s;
+            box-shadow: 0 10px 20px rgba(234, 179, 8, 0.2);
         }
         .vote-btn:hover { background-color: var(--accent-hover); transform: translateY(-2px); }
-        .vote-btn:disabled { background-color: #cbd5e1; color: #64748b; cursor: not-allowed; box-shadow: none; transform: none; }
+        .vote-btn:disabled { background-color: #cbd5e1; color: #94a3b8; cursor: not-allowed; box-shadow: none; transform: none; }
 
         @media (max-width: 768px) {
-            header { height: 120px; font-size: 28px; }
-            .header-title { font-size: 20px; padding: 0 90px; }
+            header { height: 100px; font-size: 24px; }
+            .header-title { font-size: 18px; padding: 0 90px; }
             .nav-btn { padding: 6px 12px; font-size: 14px; left: 10px; }
             .home-grid { grid-template-columns: 1fr; padding: 20px; }
             .list-grid { grid-template-columns: repeat(2, 1fr); padding: 20px; gap: 15px;}
-            .detail-container { flex-direction: column; padding: 20px; }
-            .main-image-box img { max-height: 300px; }
+            
+            /* 手機版雙圖改為上下堆疊 */
+            .image-gallery-grid { grid-template-columns: 1fr; gap: 20px; }
+            .image-viewer-box img { max-height: 350px; }
+            .medal-title { font-size: 26px; }
         }
     </style>
 </head>
@@ -121,7 +139,7 @@
 
     <div id="loader">
         <div class="spinner"></div>
-        <div id="loader-text">載入展館資料中...</div>
+        <div id="loader-text">載入中...</div>
     </div>
 
     <div class="vote-status-bar" id="status-bar">
@@ -129,10 +147,7 @@
     </div>
 
     <div id="page-home" class="page active">
-        <header>
-            人氣票選展區
-            <div style="font-size: 16px; font-weight: normal; margin-top: 10px; letter-spacing: 1px;">請投下您神聖的 3 票</div>
-        </header>
+        <header>人氣票選展區</header>
         <div class="home-grid">
             <div class="theme-btn" onclick="switchToList('物件')">主題：物件</div>
             <div class="theme-btn" onclick="switchToList('配件')">主題：配件</div>
@@ -143,7 +158,7 @@
 
     <div id="page-list" class="page">
         <div class="header-bar">
-            <button class="nav-btn" onclick="switchToHome()">⬅ 回首頁</button>
+            <button class="nav-btn" onclick="switchToHome()">🏠 回首頁</button>
             <div class="header-title" id="list-title">主題</div>
         </div>
         <div class="list-grid" id="list-container"></div>
@@ -152,61 +167,57 @@
     <div id="page-detail" class="page">
         <div class="header-bar">
             <button class="nav-btn" onclick="backToPrevious()">⬅ 返回</button>
-            <div class="header-title">作品詳情</div>
+            <div class="header-title">作品投票</div>
         </div>
+        
         <div class="detail-container">
-            <div class="main-image-box">
-                <img id="medal-img" src="" alt="作品圖片">
+            <div class="title-block">
                 <div class="medal-title" id="medal-name">作品名稱</div>
-                <div class="card-author" id="medal-author" style="font-size: 18px; margin-top: 5px;"></div>
+                <div class="medal-author" id="medal-author">作者：學生姓名</div>
             </div>
-            <div class="content-sidebar">
-                <div class="info-card">
-                    <div class="info-section">
-                        <h3>💡 作品理念</h3>
-                        <p id="concept-text">載入中...</p>
-                    </div>
-                    <div class="info-section">
-                        <h3>🎤 採訪內容</h3>
-                        <p id="interview-text">載入中...</p>
-                    </div>
+
+            <div class="image-gallery-grid">
+                <div class="image-viewer-box">
+                    <div class="image-tag">🥇 獎牌實品照</div>
+                    <img id="medal-img" src="" alt="獎牌實品照">
                 </div>
-                
+                <div class="image-viewer-box">
+                    <div class="image-tag">📐 作品設計圖</div>
+                    <img id="design-img" src="" alt="作品設計圖">
+                </div>
+            </div>
+
+            <div class="action-block">
                 <button class="vote-btn" id="action-vote-btn" onclick="submitVote()">
                     🗳️ 投給這個作品！
                 </button>
-
             </div>
         </div>
     </div>
 
     <script>
-        // 你的資料庫 API
         const DATA_GAS_URL = "https://script.google.com/macros/s/AKfycbzFdiVTqT5QxCJPdCRLDHGn_tKrpIJ82LlmRKLYkrFRxCxSu1n9lnwXA_bOtTOYzRe7Fg/exec"; 
-        
-        // 🌟 投票專用的 API (請替換成之前教你寫的那個接收 doPost 投票的 GAS 網址)
-        const VOTE_GAS_URL = "你的投票後端_GAS_URL"; 
+        const VOTE_GAS_URL = "你的投票後端_GAS_URL"; // 👈 請填入接收投票的 GAS Web App 網址
 
         let exhibitionData = null; 
         let currentCategory = "";  
-        let currentArtworkId = ""; // 記錄當前觀看作品 ID (使用學生姓名)
+        let currentArtworkId = ""; // 核心：使用學生姓名作為唯一的 Key
 
-        // 🌟 1. 讀取使用者的投票紀錄 (LocalStorage)
+        // 讀取 LocalStorage 投票紀錄
         let votedArtworks = JSON.parse(localStorage.getItem('my_votes')) || [];
 
         async function initData() {
-            updateVoteUI(); // 初始化畫面上方的票數
-            
+            updateVoteUI();
             const cachedData = localStorage.getItem('exhibitionData');
             if (cachedData) {
                 try {
                     exhibitionData = JSON.parse(cachedData);
                     if (exhibitionData && exhibitionData.images) {
                         document.getElementById('loader').style.display = 'none';
-                        checkQRUrlParam(); // 🌟 資料準備好後，檢查是否有掃描 QR Code
+                        checkQRUrlParam();
                         return;
                     }
-                } catch (e) { console.log("快取失效"); }
+                } catch (e) {}
             }
             await fetchFromGoogle();
         }
@@ -217,22 +228,20 @@
                 exhibitionData = await response.json();
                 localStorage.setItem('exhibitionData', JSON.stringify(exhibitionData));
                 document.getElementById('loader').style.display = 'none';
-                checkQRUrlParam(); // 🌟 資料準備好後，檢查是否有掃描 QR Code
+                checkQRUrlParam();
             } catch (e) {
                 document.getElementById('loader-text').innerText = "載入失敗，請重新整理！";
             }
         }
 
-        // 🌟 2. 檢查網址是否有 ?id=XXX (處理 QR Code 掃描)
+        // QR Code 掃描參數檢查 (?id=學生姓名)
         function checkQRUrlParam() {
             const urlParams = new URLSearchParams(window.location.search);
             const targetId = urlParams.get('id');
             
             if (targetId && exhibitionData && exhibitionData.images) {
-                // 從資料中找尋這張圖片的網址
                 const targetImg = exhibitionData.images.find(img => img.name === targetId);
                 if (targetImg) {
-                    // 如果找到了，直接切換到詳細頁
                     switchToDetail(targetId, targetImg.url);
                 }
             }
@@ -245,7 +254,6 @@
         }
 
         function switchToHome() { 
-            // 如果網址上有參數，回首頁時順便清掉，避免重新整理又跳回作品
             window.history.replaceState({}, document.title, window.location.pathname);
             showPage('page-home'); 
         }
@@ -263,8 +271,6 @@
                 const textData = exhibitionData.texts ? exhibitionData.texts[item.name] : null;
                 const displayTitle = (textData && textData.artName) ? textData.artName : item.name;
                 const authorLabel = (textData && textData.artName) ? `作者：${item.name}` : '';
-                
-                // 🌟 如果該作品已經投過票，在清單上也可以做個小標記 (選項)
                 const votedBadge = votedArtworks.includes(item.name) ? `<div style="color:var(--accent-gold); font-weight:bold; margin-top:5px;">✅ 已支持</div>` : '';
 
                 cardHtml += `
@@ -281,34 +287,38 @@
         }
 
         function switchToDetail(name, imgUrl) {
-            currentArtworkId = name;
+            currentArtworkId = name; // 學生姓名當作唯一識別碼
             
-            let detailText = { artName: "", concept: "暫無作品理念資訊。", interview: "暫無採訪內容資訊。" };
+            let detailText = { artName: "", designUrl: "" }; // 🌟 預期後台有提供 designUrl (設計圖網址)
             if (exhibitionData && exhibitionData.texts && exhibitionData.texts[name]) {
                 detailText = exhibitionData.texts[name];
             }
             
+            // 填入作品資訊
             const displayTitle = detailText.artName ? detailText.artName : name;
             document.getElementById('medal-name').innerText = displayTitle;
             document.getElementById('medal-author').innerText = detailText.artName ? `作者：${name}` : "";
-            document.getElementById('medal-img').src = imgUrl;
-            document.getElementById('concept-text').innerText = detailText.concept;
-            document.getElementById('interview-text').innerText = detailText.interview;
             
-            updateVoteUI(); // 切換時檢查這個作品的按鈕狀態
+            // 填入雙影像網址
+            document.getElementById('medal-img').src = imgUrl; // 獎牌實品圖
+            
+            // 🌟 這裡讀取設計圖網址。
+            // 如果你在 GAS 試算表裡的欄位名稱是不同的（例如叫 draftUrls 陣列的第一張），請自行修改下方這行。
+            // 範例：如果沿用舊的，可以寫成：detailText.draftUrls ? detailText.draftUrls[0] : '預設圖網址';
+            document.getElementById('design-img').src = detailText.designUrl || "https://placehold.co/400x400?text=Design+Coming+Soon"; 
+            
+            updateVoteUI();
             showPage('page-detail');
         }
 
         function backToPrevious() { 
-            // 如果是透過 QR Code 直達詳細頁，按返回就回首頁；否則回列表
             if(currentCategory === "") switchToHome();
             else switchToList(currentCategory); 
         }
 
-        // 🌟 3. 更新投票介面 (上方數字、按鈕狀態)
+        // 更新介面與投票狀態清單
         function updateVoteUI() {
             document.getElementById('vote-count').innerText = votedArtworks.length;
-            
             const voteBtn = document.getElementById('action-vote-btn');
             
             if (votedArtworks.includes(currentArtworkId)) {
@@ -323,29 +333,27 @@
             }
         }
 
-        // 🌟 4. 點擊投票邏輯
+        // 點擊投票
         function submitVote() {
             if (votedArtworks.includes(currentArtworkId)) return alert("此作品你已經投過囉！");
             if (votedArtworks.length >= 3) return alert("你已經投滿 3 票囉！");
 
-            // -- 💡 下方這段 fetch 是真的要傳給後台的，目前先註解，你可以接上你的投票後台 API --
+            // 實聯制傳送給後端 GAS（請記得取消下方註解並對接 API）
             /*
             fetch(VOTE_GAS_URL, {
                 method: "POST",
                 mode: "no-cors",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ id: currentArtworkId })
-            }).then(() => {
-                // 成功後執行以下...
-            }).catch(e => alert("網路錯誤，請稍後再試"));
+            }).then(() => { ... }).catch(e => alert("網路錯誤"));
             */
 
-            // ⚠️ 測試用：直接假裝傳送成功，寫入快取
+            // 本地快取模擬測試
             votedArtworks.push(currentArtworkId);
             localStorage.setItem('my_votes', JSON.stringify(votedArtworks));
             
             alert("投票成功！感謝您的支持！");
-            updateVoteUI(); // 刷新按鈕狀態
+            updateVoteUI();
         }
 
         initData();
