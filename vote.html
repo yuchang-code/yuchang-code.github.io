@@ -268,19 +268,29 @@
 
         function submitVote() {
             if (votedArtworks.includes(currentStudent)) return alert("這張票你已經投過囉！");
-            if (votedArtworks.length >= 3) return alert("你已經投滿 3 票囉！");
-
+            if (votedArtworks.length >= 3) return alert("您已達投票上限（3票）！");
+        
+            // 🌟 核心防禦：一秒都不要等，點擊瞬間立刻鎖死按鈕，防止重複點擊！
+            const voteBtn = document.getElementById('action-vote-btn');
+            voteBtn.disabled = true;
+            voteBtn.innerText = "⏳ 正在傳送神聖選票...";
+        
             fetch(GAS_URL, {
                 method: "POST",
                 mode: "no-cors",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ id: currentStudent })
             }).then(() => {
+                // 成功後才寫入紀錄
                 votedArtworks.push(currentStudent);
                 localStorage.setItem('my_votes', JSON.stringify(votedArtworks));
-                alert("投票成功！感謝您的支持！");
-                updateVoteUI();
-            }).catch(e => alert("網路錯誤，請稍後再試"));
+                alert("✦ 投票成功！感謝您的專業評選 ✦");
+                updateVoteUI(); // 這裏面會根據紀錄，自動保持鎖死狀態
+            }).catch(e => {
+                alert("網路傳輸異常，請稍後再試");
+                // 🌟 萬一失敗了，才呼叫 updateVoteUI 把按鈕解鎖還原，讓使用者重試
+                updateVoteUI(); 
+            });
         }
 
         initData();
