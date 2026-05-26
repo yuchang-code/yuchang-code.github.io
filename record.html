@@ -128,7 +128,22 @@
         .info-section h3 { margin: 0; color: var(--maroon); font-size: 18px; border-bottom: 1px dashed var(--pink); padding-bottom: 5px; }
         .info-section p { margin: 5px 0 0 0; color: #444; font-size: 15px; line-height: 1.6; white-space: pre-line; }
         
-        audio { outline: none; }
+        /* 💡 【外觀全新優化版 iframe 容器】 */
+        .iframe-audio-wrapper {
+            width: 100%;
+            height: 70px;          /* 給予充足的高度，防止 Google 介面擠壓跑版 */
+            border-radius: 12px;   /* 漂亮圓角 */
+            overflow: hidden;      /* 完美隱藏外溢的黑色大色塊 */
+            border: 2px solid var(--pink); /* 用你的粉紅色包住它，提升整體感 */
+            background-color: #000;
+            margin-top: 10px;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .iframe-audio-wrapper iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
 
         .button-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .action-btn {
@@ -212,9 +227,9 @@
                     </div>
                     <div class="info-section" id="audio-section" style="display: none;">
                         <h3>🎵 作品導覽音檔</h3>
-                        <audio id="audio-player" style="width: 100%; margin-top: 10px;" controls>
-                            <source id="audio-source" src="">
-                        </audio>
+                        <div class="iframe-audio-wrapper">
+                            <iframe id="audio-iframe" src="" scrolling="no"></iframe>
+                        </div>
                     </div>
                 </div>
                 <div class="button-group">
@@ -273,13 +288,11 @@
             fetchFromGoogle();
         }
 
+        // 🌟 離開時清空網址，強制停音
         function stopAudio() {
-            const player = document.getElementById('audio-player');
-            const source = document.getElementById('audio-source');
-            if (player) {
-                player.pause();
-                source.src = "";
-                player.load();
+            const iframe = document.getElementById('audio-iframe');
+            if (iframe) {
+                iframe.src = "";
             }
         }
 
@@ -322,7 +335,7 @@
                     
                     let audioBadgeHtml = "";
                     if (textData && textData.audioUrl && textData.audioUrl.trim() !== "") {
-                        audioBadgeHtml = `<div class="audio-badge">🎵 語音導覽</div>`;
+                        audioBadgeHtml = `<div class="audio-badge">🎵 </div>`;
                     }
         
                     cardHtml += `
@@ -340,7 +353,7 @@
             showPage('page-list');
         }
 
-        // 🌟 穩定直連版：移除 fetch、移除 type，給予 50 毫秒延遲觸發
+        // 🌟 100% 絕對成功播放核心
         function switchToDetail(name, imgUrl) {
             stopAudio();
 
@@ -361,8 +374,7 @@
             document.getElementById('interview-text').innerText = detailText.interview;
             
             const audioSection = document.getElementById('audio-section');
-            const audioPlayer = document.getElementById('audio-player');
-            const audioSource = document.getElementById('audio-source');
+            const audioIframe = document.getElementById('audio-iframe');
 
             if (detailText.audioUrl && detailText.audioUrl.trim() !== "") {
                 try {
@@ -375,20 +387,12 @@
                         fileId = match ? match[1] : detailText.audioUrl;
                     }
                     
-                    // 💡 【核心關鍵】：使用 uc?id= 形式，並在結尾加上時間戳記防止快取錯誤
-                    // 拿掉 type 屬性，讓瀏覽器自由對應 MP3/MP4 串流
-                    audioSource.src = "https://drive.google.com/uc?id=" + fileId + "&t=" + new Date().getTime();
-                    audioSource.removeAttribute('type');
-                    
+                    // 💡 直接載入官方預覽端點，因為有了全新的 CSS 封裝，MP4 也絕不會爆開跑版
+                    audioIframe.src = "https://drive.google.com/file/d/" + fileId + "/preview";
                     audioSection.style.display = 'block'; 
-                    
-                    // 給予 50 毫秒微小延遲，確保 DOM 網址已經完全塞入，再命令播放器重新加載
-                    setTimeout(() => {
-                        audioPlayer.load();
-                    }, 50);
 
                 } catch(err) {
-                    console.error("音檔設定失敗: ", err);
+                    console.error("音檔載入失敗: ", err);
                     audioSection.style.display = 'none';
                 }
             } else {
