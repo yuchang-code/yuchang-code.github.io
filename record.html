@@ -69,7 +69,6 @@
             font-size: 32px; 
             font-weight: bold; 
             margin: 0; 
-            /* 🌟 核心修正：左右強行留出 130px 的護城河，標題太長會自動換行，絕對不會撞到按鈕 */
             padding: 0 130px; 
             text-align: center;
             box-sizing: border-box;
@@ -78,7 +77,7 @@
         .nav-btn {
             position: absolute; left: 20px; background-color: var(--pink); color: white;
             border: none; padding: 10px 20px; border-radius: 12px; font-weight: bold; font-size: 16px; cursor: pointer;
-            z-index: 10; /* 確保按鈕在最上層，不會被標題遮擋而無法點擊 */
+            z-index: 10; 
         }
         .list-grid {
             display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; padding: 40px; max-width: 1200px; margin: 0 auto;
@@ -111,8 +110,13 @@
             background-color: var(--light-pink); border-left: 5px solid var(--maroon);
             padding: 20px; border-radius: 0 15px 15px 0; flex-grow: 1; display: flex; flex-direction: column; gap: 15px;
         }
+        .info-section { margin-bottom: 5px; }
         .info-section h3 { margin: 0; color: var(--maroon); font-size: 18px; border-bottom: 1px dashed var(--pink); padding-bottom: 5px; }
         .info-section p { margin: 5px 0 0 0; color: #444; font-size: 15px; line-height: 1.6; white-space: pre-line; }
+        
+        /* 播放器微調樣式 */
+        audio { outline: none; }
+
         .button-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .action-btn {
             background-color: var(--maroon); color: white; border: none; padding: 15px; 
@@ -121,7 +125,6 @@
         .action-btn:hover { background-color: #b03554; }
         .action-btn.active { background-color: var(--pink); }
         
-        /* 🌟 新增：當按鈕被禁用（暗掉）時的樣式 */
         .action-btn:disabled {
             background-color: #ccc !important;
             color: #888 !important;
@@ -132,19 +135,16 @@
         .back-btn { background: #666; }
 
         @media (max-width: 768px) {
-            /* 🌟 手機版防撞微調：縮小標題字體，並縮減左右安全距離 */
             .header-title { 
                 font-size: 20px !important; 
                 padding: 0 90px !important; 
             }
-            /* 🌟 手機版按鈕稍微縮小，更省空間 */
             .nav-btn { 
                 padding: 8px 12px !important; 
                 font-size: 14px !important; 
                 left: 10px !important; 
             }
             
-            /* 以下維持原本的響應式設定 */
             .home-grid { grid-template-columns: 1fr; padding: 20px; }
             .list-grid { grid-template-columns: repeat(2, 1fr); padding: 20px; }
             .detail-container { flex-direction: column; }
@@ -166,7 +166,7 @@
             <div class="theme-btn" onclick="switchToList('技能')">主題：技能</div>
             <div class="theme-btn" onclick="switchToList('特質')">主題：特質</div>
         </div>
-        
+        <button class="reload-cache-btn" onclick="forceReloadData()">🔄 強制同步雲端最新資料</button>
     </div>
 
     <div id="page-list" class="page">
@@ -197,6 +197,10 @@
                         <h3>🎤 採訪內容</h3>
                         <p id="interview-text">載入中...</p>
                     </div>
+                    <div class="info-section" id="audio-section" style="display: none;">
+                        <h3>🎵 作品導覽音檔</h3>
+                        <audio id="audio-player" controls src="" style="width: 100%; margin-top: 10px;"></audio>
+                    </div>
                 </div>
                 <div class="button-group">
                     <button class="action-btn" id="draft-btn" onclick="toggleDraft()">切換草稿設計</button>
@@ -207,13 +211,13 @@
     </div>
 
     <script>
-        // 🌟 請在這裡填入你最新部署的 GAS 網址
+        // 🌟 請確保填入你最新部署的 GAS 網址
         const GAS_URL = "https://script.google.com/macros/s/AKfycbzFdiVTqT5QxCJPdCRLDHGn_tKrpIJ82LlmRKLYkrFRxCxSu1n9lnwXA_bOtTOYzRe7Fg/exec"; 
 
         let exhibitionData = null; 
         let currentCategory = "";  
         let currentMedal = null;   
-        let currentDraftIndex = -1; // 🌟 新增：記錄當前觀看的草稿索引（-1 代表顯示成品圖）
+        let currentDraftIndex = -1; 
 
         async function initData() {
             const cachedData = localStorage.getItem('exhibitionData');
@@ -255,13 +259,25 @@
             fetchFromGoogle();
         }
 
+        // 🌟 核心優化：切換頁面時，順便暫停音樂播放
+        function stopAudio() {
+            const player = document.getElementById('audio-player');
+            if (player) {
+                player.pause();
+                player.src = ""; // 清空，防背景偷跑流量
+            }
+        }
+
         function showPage(pageId) {
             document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
             document.getElementById(pageId).classList.add('active');
             window.scrollTo(0, 0);
         }
 
-        function switchToHome() { showPage('page-home'); }
+        function switchToHome() { 
+            stopAudio(); // 離開時停掉聲音
+            showPage('page-home'); 
+        }
 
         function switchToList(category) {
             currentCategory = category;
@@ -280,17 +296,11 @@
             if (filteredImages.length === 0) {
                 container.innerHTML = "<div style='grid-column:1/-1; text-align:center;'>此分類目前沒有照片喔！</div>";
             } else {
-                // 💡 效能優化：用一個字串把所有卡片接起來，最後一次渲染，網頁會更流暢
                 let cardHtml = "";
                 
                 filteredImages.forEach(item => {
-                    // 1. 🌟 從 texts 字典中，用「學生姓名」當 Key 撈出對應的文字資料
                     const textData = exhibitionData.texts ? exhibitionData.texts[item.name] : null;
-                    
-                    // 2. 🌟 決定卡片標題：優先顯示「作品名稱」，如果試算表沒填，就退回顯示「學生姓名」
                     const displayTitle = (textData && textData.artName) ? textData.artName : item.name;
-                    
-                    // 3. 🌟 額外小優化：如果顯示的是作品名稱，就在下方用灰色小字提示作者是誰
                     const authorLabel = (textData && textData.artName) ? 
                         `<div style="font-size: 14px; color: #666; margin-top: 4px;">作者：${item.name}</div>` : '';
         
@@ -309,43 +319,47 @@
         }
 
         function switchToDetail(name, imgUrl) {
-            // 💡 name 現在是學生姓名（唯一的 Key），我們保持它作為後台識別碼
             currentMedal = { name: name, url: imgUrl, draftUrls: [] };
-            currentDraftIndex = -1; // 預設進來顯示成品圖
+            currentDraftIndex = -1; 
         
             const draftBtn = document.getElementById('draft-btn');
             
-            // 1. 🌟 先建立預設文字結構（補上 artName 欄位）
-            let detailText = { artName: "", concept: "暫無作品理念資訊。", interview: "暫無採訪內容資訊。", draftUrls: [] };
+            // 1. 預設結構（加上預設的 audioUrl）
+            let detailText = { artName: "", concept: "暫無作品理念資訊。", interview: "暫無採訪內容資訊。", draftUrls: [], audioUrl: "" };
         
-            // 2. 🌟 移到前方：從 texts 字典中，用「學生姓名 (name)」撈出對應的完整試算表資料
+            // 2. 從後端回傳字典中比對撈取
             if (exhibitionData && exhibitionData.texts && exhibitionData.texts[name]) {
                 detailText = exhibitionData.texts[name];
             }
         
-            // 3. 🌟 核心變更：詳細頁大標題優先顯示「作品名稱」，若沒填則顯示「學生姓名」
             const displayTitle = detailText.artName ? detailText.artName : name;
             document.getElementById('medal-name').innerText = displayTitle;
-        
-            // 💡 額外提示：如果你想在詳細頁也顯示作者是誰，且你的 HTML 有一格叫 id="medal-author" 的話，可以解開下方註解：
-            // if (document.getElementById('medal-author')) {
-            //     document.getElementById('medal-author').innerText = detailText.artName ? "作者：" + name : "";
-            // }
         
             document.getElementById('medal-img').src = imgUrl;
             document.getElementById('concept-text').innerText = detailText.concept;
             document.getElementById('interview-text').innerText = detailText.interview;
             
-            // 綁定該作品的所有草稿
+            // 🌟 3. 音檔動態顯示/隱藏控制核心
+            const audioSection = document.getElementById('audio-section');
+            const audioPlayer = document.getElementById('audio-player');
+
+            if (detailText.audioUrl && detailText.audioUrl.trim() !== "") {
+                audioPlayer.src = detailText.audioUrl; // 塞入後端傳來的直連連結
+                audioSection.style.display = 'block';  // 顯示播放區
+            } else {
+                audioPlayer.src = "";
+                audioSection.style.display = 'none';   // 缺少音檔則隱藏播放區
+            }
+        
+            // 綁定草稿
             currentMedal.draftUrls = detailText.draftUrls || [];
         
-            // 🌟 核心控制：判斷草稿張數來改變按鈕狀態
             if (currentMedal.draftUrls.length === 0) {
                 draftBtn.innerText = "暫無草稿設計";
-                draftBtn.disabled = true; // 🌟 讓按鈕變暗且無法點擊
+                draftBtn.disabled = true; 
                 draftBtn.classList.remove('active');
             } else {
-                draftBtn.disabled = false; // 啟用按鈕
+                draftBtn.disabled = false; 
                 draftBtn.innerText = `觀看草稿 (共 ${currentMedal.draftUrls.length} 張)`;
                 draftBtn.classList.remove('active');
             }
@@ -353,33 +367,31 @@
             showPage('page-detail');
         }
 
-        function backToList() { switchToList(currentCategory); }
+        function backToList() { 
+            stopAudio(); // 點選回列表時，把播放中的音樂停掉
+            switchToList(currentCategory); 
+        }
 
-        // 🌟 核心改動：多張草稿多次切換邏輯
         function toggleDraft() {
             if (!currentMedal || !currentMedal.draftUrls || currentMedal.draftUrls.length === 0) return;
 
             const imgElement = document.getElementById('medal-img');
             const draftBtn = document.getElementById('draft-btn');
 
-            currentDraftIndex++; // 索引值遞增
+            currentDraftIndex++; 
 
-            // 循環機制：如果數值超過最大草稿張數，就回到成品圖 (-1)
             if (currentDraftIndex >= currentMedal.draftUrls.length) {
                 currentDraftIndex = -1;
             }
 
             if (currentDraftIndex === -1) {
-                // 顯示成品圖
                 imgElement.src = currentMedal.url;
                 draftBtn.innerText = `觀看草稿 (共 ${currentMedal.draftUrls.length} 張)`;
                 draftBtn.classList.remove('active');
             } else {
-                // 顯示當前張數的草稿
                 imgElement.src = currentMedal.draftUrls[currentDraftIndex];
                 draftBtn.classList.add('active');
                 
-                // 動態更改按鈕文字提示使用者
                 if (currentDraftIndex === currentMedal.draftUrls.length - 1) {
                     draftBtn.innerText = "返回成品設計 ↩";
                 } else {
