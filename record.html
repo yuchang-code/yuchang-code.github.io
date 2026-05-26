@@ -341,27 +341,37 @@
             document.getElementById('concept-text').innerText = detailText.concept;
             document.getElementById('interview-text').innerText = detailText.interview;
             
-            // 🌟 3. 音檔動態顯示/隱藏控制核心（多格式相容版）
+            // 🌟 3. 音檔動態顯示/隱藏控制核心（對策 A：強制網軌重載版）
             const audioPlayer = document.getElementById('audio-player');
-            const audioSource = document.getElementById('audio-source'); // 精準抓到 source 標籤
+            const audioSource = document.getElementById('audio-source');
             const audioSection = document.getElementById('audio-section');
             
             if (detailText.audioUrl && detailText.audioUrl.trim() !== "") {
                 
-                // 1. 把雲端網址塞給 source 標籤
-                audioSource.src = detailText.audioUrl; 
+                // 1. 將網址中的 export=download 修正為預覽串流格式 uc?id=
+                // 這是為了防止瀏覽器把它當成純下載檔而拒絕串流
+                let streamUrl = detailText.audioUrl.replace('export=download', 'uc');
                 
-                // 2. 💡 關鍵：移除任何可能殘留的 type 屬性，讓瀏覽器自動依據檔案串流解碼 (支援 MP3, M4A, WAV)
+                // 2. 塞入網址
+                audioSource.src = streamUrl; 
                 audioSource.removeAttribute('type'); 
                 
-                // 3. 💡 核心：通知父層 audio 標籤重新載入新來源（沒寫這行，source 變更就不會生效）
-                audioPlayer.load();                   
+                // 3. 🛠️ 核心修正：利用 setTimeout 給瀏覽器 50 毫秒的時間去消化 DOM 的改變
+                // 然後依序執行：暫停 -> 重新載入 -> 播放
+                audioPlayer.pause();
+                audioPlayer.load(); 
                 
-                // 4. 顯示播放區塊
+                setTimeout(() => {
+                    audioPlayer.play().catch(err => {
+                        // 自動播放如果被瀏覽器阻擋（因為使用者還沒點擊網頁），這是正常的
+                        console.log("提示：等待使用者手動點擊播放按鈕");
+                    });
+                }, 50);
+                
                 audioSection.style.display = 'block';  
             } else {
                 audioSource.src = "";
-                audioPlayer.load(); // 清空播放器狀態
+                audioPlayer.load();
                 audioSection.style.display = 'none';   
             }
         
