@@ -114,8 +114,15 @@
         .info-section h3 { margin: 0; color: var(--maroon); font-size: 18px; border-bottom: 1px dashed var(--pink); padding-bottom: 5px; }
         .info-section p { margin: 5px 0 0 0; color: #444; font-size: 15px; line-height: 1.6; white-space: pre-line; }
         
-        /* 播放器微調樣式 */
-        audio { outline: none; }
+        /* 💡 播放器區塊的外觀微調（防爆版） */
+        .audio-container {
+            width: 100%;
+            border-radius: 10px;
+            overflow: hidden;
+            background: #000;
+            margin-top: 10px;
+            height: 60px;
+        }
 
         .button-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .action-btn {
@@ -199,9 +206,9 @@
                     </div>
                     <div class="info-section" id="audio-section" style="display: none;">
                         <h3>🎵 作品導覽音檔</h3>
-                        <audio id="audio-player" style="width: 100%; margin-top: 10px;" controls autoplay>
-                            <source id="audio-source" src="">
-                        </audio>
+                        <div class="audio-container">
+                            <iframe id="audio-iframe" src="" width="100%" height="60" frameborder="0" scrolling="no"></iframe>
+                        </div>
                     </div>
                 </div>
                 <div class="button-group">
@@ -261,12 +268,11 @@
             fetchFromGoogle();
         }
 
-        // 🌟 核心優化：切換頁面時，順便暫停音樂播放
+        // 🌟 核心優化：離開頁面時切斷 iframe 網址，強制停音
         function stopAudio() {
-            const player = document.getElementById('audio-player');
-            if (player) {
-                player.pause();
-                player.src = ""; // 清空，防背景偷跑流量
+            const iframe = document.getElementById('audio-iframe');
+            if (iframe) {
+                iframe.src = ""; 
             }
         }
 
@@ -277,7 +283,7 @@
         }
 
         function switchToHome() { 
-            stopAudio(); // 離開時停掉聲音
+            stopAudio(); 
             showPage('page-home'); 
         }
 
@@ -326,10 +332,8 @@
         
             const draftBtn = document.getElementById('draft-btn');
             
-            // 1. 預設結構（加上預設的 audioUrl）
             let detailText = { artName: "", concept: "暫無作品理念資訊。", interview: "暫無採訪內容資訊。", draftUrls: [], audioUrl: "" };
         
-            // 2. 從後端回傳字典中比對撈取
             if (exhibitionData && exhibitionData.texts && exhibitionData.texts[name]) {
                 detailText = exhibitionData.texts[name];
             }
@@ -341,38 +345,33 @@
             document.getElementById('concept-text').innerText = detailText.concept;
             document.getElementById('interview-text').innerText = detailText.interview;
             
-            // 🌟 3. 音檔動態顯示/隱藏控制核心（對策 A：強制網軌重載版）
-            const audioPlayer = document.getElementById('audio-player');
-            const audioSource = document.getElementById('audio-source');
+            // 🌟 核心優化：將多格式網址解析為 Google 官方無敵播放器的 ID
             const audioSection = document.getElementById('audio-section');
-            
+            const audioIframe = document.getElementById('audio-iframe');
+
             if (detailText.audioUrl && detailText.audioUrl.trim() !== "") {
-                
-                // 1. 將網址中的 export=download 修正為預覽串流格式 uc?id=
-                // 這是為了防止瀏覽器把它當成純下載檔而拒絕串流
-                let streamUrl = detailText.audioUrl.replace('export=download', 'uc');
-                
-                // 2. 塞入網址
-                audioSource.src = streamUrl; 
-                audioSource.removeAttribute('type'); 
-                
-                // 3. 🛠️ 核心修正：利用 setTimeout 給瀏覽器 50 毫秒的時間去消化 DOM 的改變
-                // 然後依序執行：暫停 -> 重新載入 -> 播放
-                audioPlayer.pause();
-                audioPlayer.load(); 
-                
-                setTimeout(() => {
-                    audioPlayer.play().catch(err => {
-                        // 自動播放如果被瀏覽器阻擋（因為使用者還沒點擊網頁），這是正常的
-                        console.log("提示：等待使用者手動點擊播放按鈕");
-                    });
-                }, 50);
-                
-                audioSection.style.display = 'block';  
+                try {
+                    let fileId = "";
+                    // 自動兼容 uc?id= 或是 export=download 或是直接貼 ID 的狀況
+                    if (detailText.audioUrl.includes('id=')) {
+                        const urlParams = new URLSearchParams(detailText.audioUrl.split('?')[1]);
+                        fileId = urlParams.get('id');
+                    } else {
+                        // 如果是直連網址格式，用正則表達式把 ID 挖出來
+                        const match = detailText.audioUrl.match(/\/d\/([^/]+)/);
+                        fileId = match ? match[1] : detailText.audioUrl;
+                    }
+                    
+                    // 強制轉化為官方最頂級相容性的 preview 介面
+                    audioIframe.src = "https://drive.google.com/file/d/" + fileId + "/preview";
+                    audioSection.style.display = 'block'; 
+                } catch(err) {
+                    console.error("音檔網址解析失敗: ", err);
+                    audioSection.style.display = 'none';
+                }
             } else {
-                audioSource.src = "";
-                audioPlayer.load();
-                audioSection.style.display = 'none';   
+                audioIframe.src = "";
+                audioSection.style.display = 'none';  
             }
         
             // 綁定草稿
@@ -392,7 +391,7 @@
         }
 
         function backToList() { 
-            stopAudio(); // 點選回列表時，把播放中的音樂停掉
+            stopAudio(); 
             switchToList(currentCategory); 
         }
 
