@@ -199,7 +199,9 @@
                     </div>
                     <div class="info-section" id="audio-section" style="display: none;">
                         <h3>🎵 作品導覽音檔</h3>
-                        <audio id="audio-player" controls src="" style="width: 100%; margin-top: 10px;"></audio>
+                        <audio id="audio-player" style="width: 100%; margin-top: 10px;" controls autoplay>
+                            <source src="">
+                        </audio>
                     </div>
                 </div>
                 <div class="button-group">
@@ -341,7 +343,7 @@
             
             // 🌟 3. 音檔動態顯示/隱藏控制核心
             const audioSection = document.getElementById('audio-section');
-            const audioPlayer = document.getElementById('audio-player');
+            const audioPlayer = document.getElementById('audio-player').childNodes[0];
 
             if (detailText.audioUrl && detailText.audioUrl.trim() !== "") {
                 audioPlayer.src = detailText.audioUrl; // 塞入後端傳來的直連連結
