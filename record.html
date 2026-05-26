@@ -200,7 +200,7 @@
                     <div class="info-section" id="audio-section" style="display: none;">
                         <h3>🎵 作品導覽音檔</h3>
                         <audio id="audio-player" style="width: 100%; margin-top: 10px;" controls autoplay>
-                            <source src="">
+                            <source id="audio-source" src="">
                         </audio>
                     </div>
                 </div>
@@ -341,16 +341,28 @@
             document.getElementById('concept-text').innerText = detailText.concept;
             document.getElementById('interview-text').innerText = detailText.interview;
             
-            // 🌟 3. 音檔動態顯示/隱藏控制核心
+            // 🌟 3. 音檔動態顯示/隱藏控制核心（多格式相容版）
+            const audioPlayer = document.getElementById('audio-player');
+            const audioSource = document.getElementById('audio-source'); // 精準抓到 source 標籤
             const audioSection = document.getElementById('audio-section');
-            const audioPlayer = document.getElementById('audio-player').childNodes[0];
-
+            
             if (detailText.audioUrl && detailText.audioUrl.trim() !== "") {
-                audioPlayer.src = detailText.audioUrl; // 塞入後端傳來的直連連結
-                audioSection.style.display = 'block';  // 顯示播放區
+                
+                // 1. 把雲端網址塞給 source 標籤
+                audioSource.src = detailText.audioUrl; 
+                
+                // 2. 💡 關鍵：移除任何可能殘留的 type 屬性，讓瀏覽器自動依據檔案串流解碼 (支援 MP3, M4A, WAV)
+                audioSource.removeAttribute('type'); 
+                
+                // 3. 💡 核心：通知父層 audio 標籤重新載入新來源（沒寫這行，source 變更就不會生效）
+                audioPlayer.load();                   
+                
+                // 4. 顯示播放區塊
+                audioSection.style.display = 'block';  
             } else {
-                audioPlayer.src = "";
-                audioSection.style.display = 'none';   // 缺少音檔則隱藏播放區
+                audioSource.src = "";
+                audioPlayer.load(); // 清空播放器狀態
+                audioSection.style.display = 'none';   
             }
         
             // 綁定草稿
