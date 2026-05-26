@@ -85,6 +85,7 @@
         .item-card {
             background-color: var(--pink); border-radius: 20px; padding: 15px;
             text-align: center; color: white; cursor: pointer; transition: 0.3s; text-decoration: none;
+            position: relative; /* 讓內部定位正常 */
         }
         .item-card:hover { background-color: #c46d84; transform: translateY(-5px); }
         .img-placeholder {
@@ -92,6 +93,20 @@
             display: flex; align-items: center; justify-content: center; overflow: hidden;
         }
         .img-placeholder img { width: 100%; height: 100%; object-fit: contain; }
+
+        /* 💡 列表中音檔提示的小標籤樣式 */
+        .audio-badge {
+            display: inline-block;
+            background-color: var(--maroon);
+            color: white;
+            font-size: 12px;
+            padding: 3px 8px;
+            border-radius: 10px;
+            margin-top: 6px;
+            font-weight: bold;
+            letter-spacing: 1px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
 
         /* ---------------- 3. 詳細頁樣式 ---------------- */
         .detail-container { 
@@ -114,14 +129,14 @@
         .info-section h3 { margin: 0; color: var(--maroon); font-size: 18px; border-bottom: 1px dashed var(--pink); padding-bottom: 5px; }
         .info-section p { margin: 5px 0 0 0; color: #444; font-size: 15px; line-height: 1.6; white-space: pre-line; }
         
-        /* 💡 播放器區塊的外觀微調（防爆版） */
-        .audio-container {
-            width: 100%;
-            border-radius: 10px;
-            overflow: hidden;
-            background: #000;
-            margin-top: 10px;
-            height: 60px;
+        audio { outline: none; }
+        
+        .audio-loading-hint {
+            font-size: 14px;
+            color: var(--maroon);
+            margin-top: 5px;
+            font-weight: bold;
+            display: none;
         }
 
         .button-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -205,10 +220,10 @@
                         <p id="interview-text">載入中...</p>
                     </div>
                     <div class="info-section" id="audio-section" style="display: none;">
-                        <h3>🎵 作品導覽音檔</h3>
-                        <div class="audio-container">
-                            <iframe id="audio-iframe" src="" width="100%" height="60" frameborder="0" scrolling="no"></iframe>
-                        </div>
+                        <h3>🎵 作品導覽音檔 <span id="audio-hint" class="audio-loading-hint">(音檔準備中...)</span></h3>
+                        <audio id="audio-player" style="width: 100%; margin-top: 10px;" controls>
+                            <source id="audio-source" src="">
+                        </audio>
                     </div>
                 </div>
                 <div class="button-group">
@@ -220,13 +235,13 @@
     </div>
 
     <script>
-        // 🌟 請確保填入你最新部署的 GAS 網址
         const GAS_URL = "https://script.google.com/macros/s/AKfycbzFdiVTqT5QxCJPdCRLDHGn_tKrpIJ82LlmRKLYkrFRxCxSu1n9lnwXA_bOtTOYzRe7Fg/exec"; 
 
         let exhibitionData = null; 
         let currentCategory = "";  
         let currentMedal = null;   
         let currentDraftIndex = -1; 
+        let currentBlobUrl = null; 
 
         async function initData() {
             const cachedData = localStorage.getItem('exhibitionData');
@@ -268,11 +283,17 @@
             fetchFromGoogle();
         }
 
-        // 🌟 核心優化：離開頁面時切斷 iframe 網址，強制停音
         function stopAudio() {
-            const iframe = document.getElementById('audio-iframe');
-            if (iframe) {
-                iframe.src = ""; 
+            const player = document.getElementById('audio-player');
+            const source = document.getElementById('audio-source');
+            if (player) {
+                player.pause();
+                source.src = "";
+                player.load();
+            }
+            if (currentBlobUrl) {
+                URL.revokeObjectURL(currentBlobUrl);
+                currentBlobUrl = null;
             }
         }
 
@@ -287,6 +308,7 @@
             showPage('page-home'); 
         }
 
+        // 🌟 核心優化：渲染列表時自動判斷並加上音符標籤
         function switchToList(category) {
             currentCategory = category;
             document.getElementById('list-title').innerText = "主題：" + category;
@@ -309,15 +331,23 @@
                 filteredImages.forEach(item => {
                     const textData = exhibitionData.texts ? exhibitionData.texts[item.name] : null;
                     const displayTitle = (textData && textData.artName) ? textData.artName : item.name;
+                    
+                    // 1. 生成作者姓名標籤
                     const authorLabel = (textData && textData.artName) ? 
-                        `<div style="font-size: 14px; color: #666; margin-top: 4px;">作者：${item.name}</div>` : '';
+                        `<div style="font-size: 14px; color: #fff; opacity: 0.9; margin-top: 4px;">作者：${item.name}</div>` : '';
+                    
+                    // 2. 💡 關鍵判斷：如果資料裡有 audioUrl 且不是空的，就生成一個漂亮的音符小標籤
+                    let audioBadgeHtml = "";
+                    if (textData && textData.audioUrl && textData.audioUrl.trim() !== "") {
+                        audioBadgeHtml = `<div class="audio-badge">🎵 語音導覽</div>`;
+                    }
         
                     cardHtml += `
                         <div class="item-card" onclick="switchToDetail('${item.name}', '${item.url}')">
                             <div class="img-placeholder"><img src="${item.url}" alt="${displayTitle}"></div>
                             <div style="font-weight: bold; font-size: 18px;">${displayTitle}</div>
                             ${authorLabel}
-                        </div>
+                            ${audioBadgeHtml} </div>
                     `;
                 });
                 
@@ -326,12 +356,13 @@
             showPage('page-list');
         }
 
-        function switchToDetail(name, imgUrl) {
+        async function switchToDetail(name, imgUrl) {
+            stopAudio();
+
             currentMedal = { name: name, url: imgUrl, draftUrls: [] };
             currentDraftIndex = -1; 
         
             const draftBtn = document.getElementById('draft-btn');
-            
             let detailText = { artName: "", concept: "暫無作品理念資訊。", interview: "暫無採訪內容資訊。", draftUrls: [], audioUrl: "" };
         
             if (exhibitionData && exhibitionData.texts && exhibitionData.texts[name]) {
@@ -340,41 +371,52 @@
         
             const displayTitle = detailText.artName ? detailText.artName : name;
             document.getElementById('medal-name').innerText = displayTitle;
-        
             document.getElementById('medal-img').src = imgUrl;
             document.getElementById('concept-text').innerText = detailText.concept;
             document.getElementById('interview-text').innerText = detailText.interview;
             
-            // 🌟 核心優化：將多格式網址解析為 Google 官方無敵播放器的 ID
             const audioSection = document.getElementById('audio-section');
-            const audioIframe = document.getElementById('audio-iframe');
+            const audioPlayer = document.getElementById('audio-player');
+            const audioSource = document.getElementById('audio-source');
+            const audioHint = document.getElementById('audio-hint');
 
             if (detailText.audioUrl && detailText.audioUrl.trim() !== "") {
+                audioSection.style.display = 'block'; 
+                audioHint.style.display = 'inline';
+                audioPlayer.style.pointerEvents = 'none'; 
+                
                 try {
                     let fileId = "";
-                    // 自動兼容 uc?id= 或是 export=download 或是直接貼 ID 的狀況
                     if (detailText.audioUrl.includes('id=')) {
                         const urlParams = new URLSearchParams(detailText.audioUrl.split('?')[1]);
                         fileId = urlParams.get('id');
                     } else {
-                        // 如果是直連網址格式，用正則表達式把 ID 挖出來
                         const match = detailText.audioUrl.match(/\/d\/([^/]+)/);
                         fileId = match ? match[1] : detailText.audioUrl;
                     }
                     
-                    // 強制轉化為官方最頂級相容性的 preview 介面
-                    audioIframe.src = "https://drive.google.com/file/d/" + fileId + "/preview";
-                    audioSection.style.display = 'block'; 
+                    const downloadUrl = "https://drive.google.com/uc?export=download&id=" + fileId;
+                    
+                    const res = await fetch(downloadUrl);
+                    const blob = await res.blob();
+                    
+                    currentBlobUrl = URL.createObjectURL(blob);
+                    
+                    audioSource.src = currentBlobUrl;
+                    audioSource.removeAttribute('type');
+                    audioPlayer.load();
+                    
+                    audioHint.style.display = 'none';
+                    audioPlayer.style.pointerEvents = 'auto';
+                    
                 } catch(err) {
-                    console.error("音檔網址解析失敗: ", err);
-                    audioSection.style.display = 'none';
+                    console.error("音檔讀取失敗: ", err);
+                    audioHint.innerText = "(音檔載入失敗，請確認網路)";
                 }
             } else {
-                audioIframe.src = "";
                 audioSection.style.display = 'none';  
             }
         
-            // 綁定草稿
             currentMedal.draftUrls = detailText.draftUrls || [];
         
             if (currentMedal.draftUrls.length === 0) {
