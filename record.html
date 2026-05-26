@@ -85,7 +85,7 @@
         .item-card {
             background-color: var(--pink); border-radius: 20px; padding: 15px;
             text-align: center; color: white; cursor: pointer; transition: 0.3s; text-decoration: none;
-            position: relative; /* 讓內部定位正常 */
+            position: relative;
         }
         .item-card:hover { background-color: #c46d84; transform: translateY(-5px); }
         .img-placeholder {
@@ -94,7 +94,6 @@
         }
         .img-placeholder img { width: 100%; height: 100%; object-fit: contain; }
 
-        /* 💡 列表中音檔提示的小標籤樣式 */
         .audio-badge {
             display: inline-block;
             background-color: var(--maroon);
@@ -130,14 +129,6 @@
         .info-section p { margin: 5px 0 0 0; color: #444; font-size: 15px; line-height: 1.6; white-space: pre-line; }
         
         audio { outline: none; }
-        
-        .audio-loading-hint {
-            font-size: 14px;
-            color: var(--maroon);
-            margin-top: 5px;
-            font-weight: bold;
-            display: none;
-        }
 
         .button-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .action-btn {
@@ -220,7 +211,7 @@
                         <p id="interview-text">載入中...</p>
                     </div>
                     <div class="info-section" id="audio-section" style="display: none;">
-                        <h3>🎵 作品導覽音檔 <span id="audio-hint" class="audio-loading-hint">(音檔準備中...)</span></h3>
+                        <h3>🎵 作品導覽音檔</h3>
                         <audio id="audio-player" style="width: 100%; margin-top: 10px;" controls>
                             <source id="audio-source" src="">
                         </audio>
@@ -241,7 +232,6 @@
         let currentCategory = "";  
         let currentMedal = null;   
         let currentDraftIndex = -1; 
-        let currentBlobUrl = null; 
 
         async function initData() {
             const cachedData = localStorage.getItem('exhibitionData');
@@ -291,10 +281,6 @@
                 source.src = "";
                 player.load();
             }
-            if (currentBlobUrl) {
-                URL.revokeObjectURL(currentBlobUrl);
-                currentBlobUrl = null;
-            }
         }
 
         function showPage(pageId) {
@@ -308,7 +294,6 @@
             showPage('page-home'); 
         }
 
-        // 🌟 核心優化：渲染列表時自動判斷並加上音符標籤
         function switchToList(category) {
             currentCategory = category;
             document.getElementById('list-title').innerText = "主題：" + category;
@@ -332,11 +317,9 @@
                     const textData = exhibitionData.texts ? exhibitionData.texts[item.name] : null;
                     const displayTitle = (textData && textData.artName) ? textData.artName : item.name;
                     
-                    // 1. 生成作者姓名標籤
                     const authorLabel = (textData && textData.artName) ? 
                         `<div style="font-size: 14px; color: #fff; opacity: 0.9; margin-top: 4px;">作者：${item.name}</div>` : '';
                     
-                    // 2. 💡 關鍵判斷：如果資料裡有 audioUrl 且不是空的，就生成一個漂亮的音符小標籤
                     let audioBadgeHtml = "";
                     if (textData && textData.audioUrl && textData.audioUrl.trim() !== "") {
                         audioBadgeHtml = `<div class="audio-badge">🎵 語音導覽</div>`;
@@ -347,7 +330,8 @@
                             <div class="img-placeholder"><img src="${item.url}" alt="${displayTitle}"></div>
                             <div style="font-weight: bold; font-size: 18px;">${displayTitle}</div>
                             ${authorLabel}
-                            ${audioBadgeHtml} </div>
+                            ${audioBadgeHtml}
+                        </div>
                     `;
                 });
                 
@@ -356,7 +340,8 @@
             showPage('page-list');
         }
 
-        async function switchToDetail(name, imgUrl) {
+        // 🌟 穩定直連版：移除 fetch、移除 type，給予 50 毫秒延遲觸發
+        function switchToDetail(name, imgUrl) {
             stopAudio();
 
             currentMedal = { name: name, url: imgUrl, draftUrls: [] };
@@ -378,13 +363,8 @@
             const audioSection = document.getElementById('audio-section');
             const audioPlayer = document.getElementById('audio-player');
             const audioSource = document.getElementById('audio-source');
-            const audioHint = document.getElementById('audio-hint');
 
             if (detailText.audioUrl && detailText.audioUrl.trim() !== "") {
-                audioSection.style.display = 'block'; 
-                audioHint.style.display = 'inline';
-                audioPlayer.style.pointerEvents = 'none'; 
-                
                 try {
                     let fileId = "";
                     if (detailText.audioUrl.includes('id=')) {
@@ -395,23 +375,21 @@
                         fileId = match ? match[1] : detailText.audioUrl;
                     }
                     
-                    const downloadUrl = "https://drive.google.com/uc?export=download&id=" + fileId;
-                    
-                    const res = await fetch(downloadUrl);
-                    const blob = await res.blob();
-                    
-                    currentBlobUrl = URL.createObjectURL(blob);
-                    
-                    audioSource.src = currentBlobUrl;
+                    // 💡 【核心關鍵】：使用 uc?id= 形式，並在結尾加上時間戳記防止快取錯誤
+                    // 拿掉 type 屬性，讓瀏覽器自由對應 MP3/MP4 串流
+                    audioSource.src = "https://drive.google.com/uc?id=" + fileId + "&t=" + new Date().getTime();
                     audioSource.removeAttribute('type');
-                    audioPlayer.load();
                     
-                    audioHint.style.display = 'none';
-                    audioPlayer.style.pointerEvents = 'auto';
+                    audioSection.style.display = 'block'; 
                     
+                    // 給予 50 毫秒微小延遲，確保 DOM 網址已經完全塞入，再命令播放器重新加載
+                    setTimeout(() => {
+                        audioPlayer.load();
+                    }, 50);
+
                 } catch(err) {
-                    console.error("音檔讀取失敗: ", err);
-                    audioHint.innerText = "(音檔載入失敗，請確認網路)";
+                    console.error("音檔設定失敗: ", err);
+                    audioSection.style.display = 'none';
                 }
             } else {
                 audioSection.style.display = 'none';  
