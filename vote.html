@@ -279,13 +279,18 @@
         function submitRegistration() {
             const studentId = document.getElementById('reg-student-id').value.trim();
             const visitorName = document.getElementById('reg-name').value.trim();
-
+        
             if (!studentId && !visitorName) {
                 if(!confirm("您未填寫任何資訊，確定要直接進入展區嗎？")) return;
                 closeRegisterModal(true);
                 return;
             }
-
+        
+            // 🔒【核心防禦】點擊瞬間立刻鎖死按鈕，更改文字，防止狂點重複送出戳記！
+            const regBtn = document.querySelector('.btn-submit-reg');
+            regBtn.disabled = true;
+            regBtn.innerText = "⏳ 正在傳送登記資訊...";
+        
             fetch(GAS_URL, {
                 method: "POST",
                 mode: "no-cors",
@@ -302,6 +307,9 @@
                 checkRegisterStatus();
             }).catch(e => {
                 alert("網路錯誤，登記失敗，請稍後再試。");
+                // 萬一網路真的斷線傳輸失敗，才釋放按鈕讓使用者可以重試
+                regBtn.disabled = false;
+                regBtn.innerText = "確認送出";
             });
         }
 
