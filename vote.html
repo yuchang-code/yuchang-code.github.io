@@ -36,10 +36,15 @@
         }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        /* 頂部狀態列 */
+        /* 頂部狀態列修改 (置中、左右分流) */
         .vote-status-bar {
             background: var(--accent-gold); color: var(--main-dark); text-align: center; padding: 10px;
-            font-size: 16px; font-weight: bold; position: sticky; top: 0; z-index: 100;
+            font-size: 14px; font-weight: bold; position: sticky; top: 0; z-index: 100;
+            display: flex; justify-content: space-around; align-items: center; flex-wrap: wrap; gap: 5px;
+        }
+        .register-trigger-btn {
+            background: var(--main-dark); color: white; border: none; padding: 4px 12px; 
+            border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: bold; transition: 0.2s;
         }
 
         /* 導覽列 */
@@ -96,6 +101,32 @@
         .vote-btn:hover { background-color: var(--accent-hover); }
         .vote-btn:disabled { background-color: #cbd5e1; color: #94a3b8; cursor: not-allowed; box-shadow: none; }
 
+        /* 📝 簽到彈出視窗 (Modal) 樣式 */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(15, 23, 42, 0.6); display: none; align-items: center; justify-content: center;
+            z-index: 1000; padding: 20px; box-sizing: border-box;
+        }
+        .modal-overlay.open { display: flex; }
+        .modal-box {
+            background: white; padding: 30px; border-radius: 24px; max-width: 400px; width: 100%;
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); text-align: center;
+            animation: modalIn 0.3s ease-out;
+        }
+        @keyframes modalIn { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .modal-box h3 { margin: 0 0 10px 0; font-size: 24px; color: var(--main-dark); }
+        .modal-box p { color: var(--text-light); margin: 0 0 20px 0; font-size: 14px; }
+        .form-group { text-align: left; margin-bottom: 15px; }
+        .form-group label { display: block; font-weight: bold; margin-bottom: 5px; font-size: 14px; }
+        .form-group input {
+            width: 100%; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px;
+            font-size: 16px; box-sizing: border-box;
+        }
+        .form-group input:focus { border-color: var(--accent-gold); outline: none; }
+        .modal-buttons { display: flex; flex-direction: column; gap: 10px; margin-top: 25px; }
+        .btn-submit-reg { background: var(--main-dark); color: white; border: none; padding: 12px; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; }
+        .btn-skip-reg { background: transparent; color: var(--text-light); border: 1px solid #cbd5e1; padding: 12px; border-radius: 8px; font-size: 16px; cursor: pointer; }
+
         @media (max-width: 768px) {
             header { height: 100px; font-size: 24px; }
             .home-grid { grid-template-columns: 1fr; padding: 20px; }
@@ -112,16 +143,17 @@
     </div>
 
     <div class="vote-status-bar">
-        您目前的投票紀錄（已用 <span id="vote-count">0</span> / 3 票）
+        <div>您目前的累計投票數：<span id="vote-count">0</span> 票</div>
+        <button class="register-trigger-btn" id="reg-status-badge" onclick="openRegisterModal()">✍️ 填寫觀展簽到</button>
     </div>
 
     <div id="page-home" class="page active">
         <header>人氣獎牌票選展區</header>
         <div class="home-grid">
-            <div class="theme-btn" onclick="switchToList('物件')">✨ 主題：物件</div>
-            <div class="theme-btn" onclick="switchToList('配件')">💎 主題：配件</div>
-            <div class="theme-btn" onclick="switchToList('技能')">⚡ 主題：技能</div>
-            <div class="theme-btn" onclick="switchToList('特質')">🔥 主題：特質</div>
+            <div class="theme-btn" onclick="switchToList('物件')">✨ 記憶載體：物件</div>
+            <div class="theme-btn" onclick="switchToList('配件')">💎 夢想裝配：配件</div>
+            <div class="theme-btn" onclick="switchToList('技能')">⚡ 能力之章：技能</div>
+            <div class="theme-btn" onclick="switchToList('特質')">🔥 靈魂特徵：特質</div>
         </div>
     </div>
 
@@ -150,18 +182,43 @@
         </div>
     </div>
 
+    <div class="modal-overlay" id="register-modal">
+        <div class="modal-box">
+            <h3>歡迎蒞臨展覽！</h3>
+            <p>歡迎留下您的資訊完成觀展簽到（本表單為選填）</p>
+            
+            <div class="form-group">
+                <label for="reg-student-id">您的學號 (選填)</label>
+                <input type="text" id="reg-student-id" placeholder="請輸入學號">
+            </div>
+            <div class="form-group">
+                <label for="reg-name">您的姓名 (選填)</label>
+                <input type="text" id="reg-name" placeholder="請輸入姓名">
+            </div>
+            
+            <div class="modal-buttons">
+                <button class="btn-submit-reg" onclick="submitRegistration()">確認送出</button>
+                <button class="btn-skip-reg" onclick="closeRegisterModal(true)">暫不登記，直接觀展</button>
+            </div>
+        </div>
+    </div>
+
     <script>
-        // 🌟 請把這裡改成你最新部署得到的 GAS 網址
+        // 🌟 請保持此處為您部署得到的 GAS 網址
         const GAS_URL = "https://script.google.com/macros/s/AKfycbwH7GySCb1uYUdm2Z0vmfYeoaksSzA4W1gabfO-w6O0mXl_0EVEBkuCOXoVuF-W7vvO/exec"; 
 
         let exhibitionData = null; 
         let currentCategory = "";
         let currentStudent = "";  
+        
+        // 票數改用純數字累計計數器，移除 3 票限制
+        let totalVotes = parseInt(localStorage.getItem('total_votes_count')) || 0;
         let votedArtworks = JSON.parse(localStorage.getItem('my_votes')) || [];
 
         async function initData() {
             updateVoteUI();
-            // 讀取快取以利展場快速開網頁
+            checkRegisterStatus();
+            
             const cachedData = localStorage.getItem('exhibitionData_v3');
             if (cachedData) {
                 try {
@@ -169,6 +226,7 @@
                     if (exhibitionData && exhibitionData.images) {
                         document.getElementById('loader').style.display = 'none';
                         checkQRUrlParam();
+                        triggerAutoPopup();
                         return;
                     }
                 } catch (e) {}
@@ -183,11 +241,71 @@
                 localStorage.setItem('exhibitionData_v3', JSON.stringify(exhibitionData));
                 document.getElementById('loader').style.display = 'none';
                 checkQRUrlParam();
+                triggerAutoPopup();
             } catch (e) {
                 document.getElementById('loader-text').innerText = "載入失敗，請重整網頁！";
             }
         }
 
+        // 📝 簽到模組功能
+        function checkRegisterStatus() {
+            const status = localStorage.getItem('visitor_registered');
+            const badge = document.getElementById('reg-status-badge');
+            if (status === 'success') {
+                badge.innerText = "✅ 已完成簽到登記";
+                badge.style.background = "#10b981"; 
+                badge.disabled = true;
+            }
+        }
+
+        function triggerAutoPopup() {
+            // 如果瀏覽器從未決定過（沒填過也沒跳過過），進站時自動彈窗
+            if (!localStorage.getItem('visitor_registered')) {
+                openRegisterModal();
+            }
+        }
+
+        function openRegisterModal() {
+            document.getElementById('register-modal').classList.add('open');
+        }
+
+        function closeRegisterModal(isSkipped = false) {
+            document.getElementById('register-modal').classList.remove('open');
+            if (isSkipped) {
+                localStorage.setItem('visitor_registered', 'skipped');
+            }
+        }
+
+        function submitRegistration() {
+            const studentId = document.getElementById('reg-student-id').value.trim();
+            const visitorName = document.getElementById('reg-name').value.trim();
+
+            if (!studentId && !visitorName) {
+                if(!confirm("您未填寫任何資訊，確定要直接進入展區嗎？")) return;
+                closeRegisterModal(true);
+                return;
+            }
+
+            fetch(GAS_URL, {
+                method: "POST",
+                mode: "no-cors",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    action: "register", 
+                    studentId: studentId,
+                    visitorName: visitorName
+                })
+            }).then(() => {
+                localStorage.setItem('visitor_registered', 'success');
+                alert("登記成功！祝您觀展愉快！");
+                closeRegisterModal();
+                checkRegisterStatus();
+            }).catch(e => {
+                alert("網路錯誤，登記失敗，請稍後再試。");
+            });
+        }
+
+        // 導覽功能
         function switchToHome() { 
             window.history.replaceState({}, document.title, window.location.pathname);
             showPage('page-home'); 
@@ -199,12 +317,12 @@
             const container = document.getElementById('list-container');
             
             if (!exhibitionData || !exhibitionData.images) return;
-            // 根據點選的主題篩選學生
             const filteredImages = exhibitionData.images.filter(img => img.category === category);
             
             let cardHtml = "";
             filteredImages.forEach(item => {
-                const votedBadge = votedArtworks.includes(item.name) ? `<div style="color:var(--accent-gold); font-weight:bold; margin-top:5px;">✅ 已支持</div>` : '';
+                // 列表保留小綠勾標記，提示哪些作品在本次觀展曾獲得支持
+                const votedBadge = votedArtworks.includes(item.name) ? `<div style="color:var(--accent-gold); font-weight:bold; margin-top:5px;">✅ 已支持過</div>` : '';
                 cardHtml += `
                     <div class="item-card" onclick="switchToDetail('${item.name}', '${item.url}')">
                         <div class="img-placeholder"><img src="${item.url}" alt="${item.name}"></div>
@@ -226,18 +344,16 @@
         }
 
         function backToPrevious() { 
-            if(currentCategory === "") switchToHome(); // 如果是掃 QR Code 進來的，返回就直接回首頁
+            if(currentCategory === "") switchToHome(); 
             else switchToList(currentCategory); 
         }
 
-        // 檢查 QR Code 參數 (?id=學生姓名)
         function checkQRUrlParam() {
             const urlParams = new URLSearchParams(window.location.search);
             const targetId = urlParams.get('id');
             if (targetId && exhibitionData && exhibitionData.images) {
                 const targetImg = exhibitionData.images.find(img => img.name === targetId);
                 if (targetImg) {
-                    // 順便幫他設定好分類，這樣點返回時才能回到該主題列表
                     currentCategory = targetImg.category; 
                     switchToDetail(targetId, targetImg.url);
                 }
@@ -250,45 +366,45 @@
             window.scrollTo(0, 0);
         }
 
+        // 🗳️ 更新投票介面 (解鎖無限投票)
         function updateVoteUI() {
-            document.getElementById('vote-count').innerText = votedArtworks.length;
+            document.getElementById('vote-count').innerText = totalVotes;
             const voteBtn = document.getElementById('action-vote-btn');
             
-            if (votedArtworks.includes(currentStudent)) {
-                voteBtn.innerText = "✅ 你已投票支持此作品";
-                voteBtn.disabled = true;
-            } else if (votedArtworks.length >= 3) {
-                voteBtn.innerText = "🔒 3 票已用完囉";
-                voteBtn.disabled = true;
-            } else {
-                voteBtn.innerText = "🗳️ 投給這個作品！";
-                voteBtn.disabled = false;
-            }
+            // 🔓 移除任何限制邏輯，按鈕永遠保持可點擊狀態
+            voteBtn.innerText = "🗳️ 投給這個作品！";
+            voteBtn.disabled = false;
         }
 
+        // 送出選票
         function submitVote() {
-            if (votedArtworks.includes(currentStudent)) return alert("這張票你已經投過囉！");
-            if (votedArtworks.length >= 3) return alert("您已達投票上限（3票）！");
-        
-            // 🌟 核心防禦：一秒都不要等，點擊瞬間立刻鎖死按鈕，防止重複點擊！
             const voteBtn = document.getElementById('action-vote-btn');
             voteBtn.disabled = true;
-            voteBtn.innerText = "⏳ 正在傳送神聖選票...";
+            voteBtn.innerText = "⏳ 正在傳送神盛選票...";
         
             fetch(GAS_URL, {
                 method: "POST",
                 mode: "no-cors",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ id: currentStudent })
+                body: JSON.stringify({ 
+                    action: "vote",
+                    id: currentStudent 
+                })
             }).then(() => {
-                // 成功後才寫入紀錄
-                votedArtworks.push(currentStudent);
-                localStorage.setItem('my_votes', JSON.stringify(votedArtworks));
+                // 累計總票數
+                totalVotes++;
+                localStorage.setItem('total_votes_count', totalVotes);
+                
+                // 記錄曾投過此作品
+                if (!votedArtworks.includes(currentStudent)) {
+                    votedArtworks.push(currentStudent);
+                    localStorage.setItem('my_votes', JSON.stringify(votedArtworks));
+                }
+                
                 alert("✦ 投票成功！感謝您的專業評選 ✦");
-                updateVoteUI(); // 這裏面會根據紀錄，自動保持鎖死狀態
+                updateVoteUI(); // 重新初始化，按鈕恢復可用，允許繼續無限點擊投票！
             }).catch(e => {
                 alert("網路傳輸異常，請稍後再試");
-                // 🌟 萬一失敗了，才呼叫 updateVoteUI 把按鈕解鎖還原，讓使用者重試
                 updateVoteUI(); 
             });
         }
