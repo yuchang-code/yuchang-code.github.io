@@ -3,39 +3,81 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Online Relax 測試</title>
+
+<title>多人舒壓房</title>
 
 <style>
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
 body{
+    overflow:hidden;
+    background:#f5f7fa;
     font-family:Arial,sans-serif;
-    text-align:center;
-    margin-top:50px;
 }
 
-button{
-    padding:10px 20px;
-    font-size:18px;
-    cursor:pointer;
+#room{
+    position:relative;
+    width:100vw;
+    height:100vh;
+
+    background:
+    linear-gradient(#ffffff,#eef4ff);
 }
 
-#output{
-    margin-top:20px;
-    font-size:20px;
+.player{
+    position:absolute;
+    width:50px;
+    height:50px;
+    border-radius:50%;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:white;
+    font-size:12px;
     font-weight:bold;
+    transform:translate(-50%,-50%);
+}
+
+.me{
+    background:#4caf50;
+}
+
+.other{
+    background:#2196f3;
+}
+
+.name{
+    position:absolute;
+    top:-20px;
+    left:50%;
+    transform:translateX(-50%);
+    color:black;
+    white-space:nowrap;
+}
+
+#info{
+    position:fixed;
+    top:10px;
+    left:10px;
+    background:white;
+    padding:10px;
+    border-radius:10px;
+    box-shadow:0 0 10px rgba(0,0,0,.1);
 }
 </style>
 </head>
 <body>
 
-<h1>Firebase Realtime Database 測試</h1>
-
-<button id="saveBtn">
-寫入資料
-</button>
-
-<div id="output">
-等待資料...
+<div id="info">
+WASD移動<br>
+多人即時同步
 </div>
+
+<div id="room"></div>
 
 <script type="module">
 
@@ -43,10 +85,11 @@ import { initializeApp }
 from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js";
 
 import {
-  getDatabase,
-  ref,
-  set,
-  onValue
+ getDatabase,
+ ref,
+ set,
+ onValue,
+ onDisconnect
 }
 from "https://www.gstatic.com/firebasejs/12.14.0/firebase-database.js";
 
@@ -57,49 +100,156 @@ const firebaseConfig = {
   projectId: "onlinerelax",
   storageBucket: "onlinerelax.firebasestorage.app",
   messagingSenderId: "234054299146",
-  appId: "1:234054299146:web:678ddda9af9cf5aa4bb9f3",
-  measurementId: "G-HY9G3R5EVQ"
+  appId: "1:234054299146:web:678ddda9af9cf5aa4bb9f3"
 };
 
 const app = initializeApp(firebaseConfig);
-
 const db = getDatabase(app);
 
-const output =
-document.getElementById("output");
+const room = document.getElementById("room");
 
-document
-.getElementById("saveBtn")
-.addEventListener("click",()=>{
+const playerId =
+"player_" +
+Math.random().toString(36).slice(2,10);
+
+const playerName =
+"玩家" +
+Math.floor(Math.random()*1000);
+
+let myPlayer = {
+    x: window.innerWidth/2,
+    y: window.innerHeight/2
+};
+
+const keys = {};
+
+document.addEventListener("keydown",e=>{
+    keys[e.key.toLowerCase()] = true;
+});
+
+document.addEventListener("keyup",e=>{
+    keys[e.key.toLowerCase()] = false;
+});
+
+set(
+    ref(db,"players/"+playerId),
+    {
+        name:playerName,
+        x:myPlayer.x,
+        y:myPlayer.y
+    }
+);
+
+onDisconnect(
+ ref(db,"players/"+playerId)
+).remove();
+
+const playerElements = {};
+
+function renderPlayers(players){
+
+    for(const id in playerElements){
+
+        if(!players[id]){
+
+            playerElements[id].remove();
+
+            delete playerElements[id];
+        }
+    }
+
+    for(const id in players){
+
+        const p = players[id];
+
+        if(!playerElements[id]){
+
+            const el =
+            document.createElement("div");
+
+            el.className =
+            "player " +
+            (id===playerId ? "me":"other");
+
+            const name =
+            document.createElement("div");
+
+            name.className="name";
+
+            name.textContent=p.name;
+
+            el.appendChild(name);
+
+            room.appendChild(el);
+
+            playerElements[id]=el;
+        }
+
+        playerElements[id].style.left =
+        p.x+"px";
+
+        playerElements[id].style.top =
+        p.y+"px";
+
+        playerElements[id].innerHTML =
+        `<div class="name">${p.name}</div>`;
+    }
+}
+
+onValue(
+ ref(db,"players"),
+ snapshot=>{
+
+    const players =
+    snapshot.val() || {};
+
+    renderPlayers(players);
+
+ }
+);
+
+function gameLoop(){
+
+    const speed = 4;
+
+    if(keys["w"]) myPlayer.y -= speed;
+    if(keys["s"]) myPlayer.y += speed;
+    if(keys["a"]) myPlayer.x -= speed;
+    if(keys["d"]) myPlayer.x += speed;
+
+    myPlayer.x =
+    Math.max(
+        25,
+        Math.min(
+            window.innerWidth-25,
+            myPlayer.x
+        )
+    );
+
+    myPlayer.y =
+    Math.max(
+        25,
+        Math.min(
+            window.innerHeight-25,
+            myPlayer.y
+        )
+    );
 
     set(
-      ref(db,"test"),
+      ref(db,"players/"+playerId),
       {
-        message:"Hello Relax Room",
-        time:new Date().toLocaleString()
+          name:playerName,
+          x:myPlayer.x,
+          y:myPlayer.y
       }
     );
 
-});
+    requestAnimationFrame(
+      gameLoop
+    );
+}
 
-onValue(
-  ref(db,"test"),
-  (snapshot)=>{
-
-      const data = snapshot.val();
-
-      if(data){
-
-          output.innerHTML = `
-              <p>${data.message}</p>
-              <p>${data.time}</p>
-          `;
-
-          console.log(data);
-      }
-
-  }
-);
+gameLoop();
 
 </script>
 
