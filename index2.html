@@ -73,8 +73,12 @@ body{
 <body>
 
 <div id="info">
-WASD移動<br>
-多人即時同步
+<div>WASD移動</div>
+<div>1😀 2❤️ 3😭 4😡</div>
+<div>F 種花</div>
+<div id="onlineCount">
+在線人數：0
+</div>
 </div>
 
 <div id="room"></div>
@@ -89,7 +93,8 @@ import {
  ref,
  set,
  onValue,
- onDisconnect
+ onDisconnect,
+ push
 }
 from "https://www.gstatic.com/firebasejs/12.14.0/firebase-database.js";
 
@@ -106,7 +111,14 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
-const room = document.getElementById("room");
+const flowerLayer =
+document.createElement("div");
+
+flowerLayer.style.position="absolute";
+flowerLayer.style.width="100%";
+flowerLayer.style.height="100%";
+
+room.appendChild(flowerLayer);
 
 const playerId =
 "player_" +
@@ -202,12 +214,104 @@ onValue(
 
     const players =
     snapshot.val() || {};
-
+    
+    document.getElementById(
+     "onlineCount"
+    ).textContent =
+    "在線人數：" +
+    Object.keys(players).length;
+    
     renderPlayers(players);
 
  }
 );
+onValue(
+ ref(db,"flowers"),
+ snapshot=>{
 
+   flowerLayer.innerHTML="";
+
+   const flowers =
+   snapshot.val() || {};
+
+   for(const id in flowers){
+
+      const flower =
+      document.createElement("div");
+
+      flower.textContent="🌸";
+
+      flower.style.position="absolute";
+
+      flower.style.left =
+      flowers[id].x+"px";
+
+      flower.style.top =
+      flowers[id].y+"px";
+
+      flower.style.transform=
+      "translate(-50%,-50%)";
+
+      flower.style.fontSize="24px";
+
+      flowerLayer.appendChild(
+        flower
+      );
+   }
+
+ }
+);
+onValue(
+ ref(db,"emotes"),
+ snapshot=>{
+
+   document
+   .querySelectorAll(".emoji")
+   .forEach(e=>e.remove());
+
+   const emotes =
+   snapshot.val() || {};
+
+   const now =
+   Date.now();
+
+   for(const id in emotes){
+
+      const data =
+      emotes[id];
+
+      if(
+        now-data.time
+        >3000
+      ) continue;
+
+      const emoji =
+      document.createElement("div");
+
+      emoji.className="emoji";
+
+      emoji.textContent=
+      data.emoji;
+
+      emoji.style.position=
+      "absolute";
+
+      emoji.style.left=
+      data.x+"px";
+
+      emoji.style.top=
+      (data.y-50)+"px";
+
+      emoji.style.fontSize=
+      "32px";
+
+      room.appendChild(
+        emoji
+      );
+   }
+
+ }
+);
 function gameLoop(){
 
     const speed = 4;
@@ -248,7 +352,51 @@ function gameLoop(){
       gameLoop
     );
 }
+document.addEventListener(
+ "keydown",
+ e=>{
 
+   if(e.key.toLowerCase()==="f"){
+
+      push(
+        ref(db,"flowers"),
+        {
+          x:myPlayer.x,
+          y:myPlayer.y
+        }
+      );
+
+   }
+
+ }
+);
+document.addEventListener(
+ "keydown",
+ e=>{
+
+   const map = {
+      "1":"😀",
+      "2":"❤️",
+      "3":"😭",
+      "4":"😡"
+   };
+
+   if(map[e.key]){
+
+      push(
+       ref(db,"emotes"),
+       {
+          emoji:map[e.key],
+          x:myPlayer.x,
+          y:myPlayer.y,
+          time:Date.now()
+       }
+      );
+
+   }
+
+ }
+);
 gameLoop();
 
 </script>
