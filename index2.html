@@ -1,11 +1,187 @@
-<!doctype html>
-<html>
-  <head>
-    <meta charset = "utf-8">
-    <title>0.0</title>
-    <link rel="icon" href="icon.png">
-  </head>
-  <body>
-      hello world
-  </body>
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>多人舒壓房</title>
+
+<style>
+body{
+    margin:0;
+    overflow:hidden;
+    background:#222;
+}
+
+#game{
+    width:100vw;
+    height:100vh;
+}
+
+#info{
+    position:absolute;
+    top:10px;
+    left:10px;
+    color:white;
+    z-index:100;
+    font-size:20px;
+}
+</style>
+</head>
+<body>
+
+<div id="info">
+WASD移動
+</div>
+
+<div id="game"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/phaser@3/dist/phaser.min.js"></script>
+
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.9.1/firebase-app.js";
+import {
+    getDatabase,
+    ref,
+    set,
+    onValue,
+    remove,
+    onDisconnect
+}
+from "https://www.gstatic.com/firebasejs/11.9.1/firebase-database.js";
+
+const firebaseConfig = {
+    apiKey: "你的APIKEY",
+    authDomain: "你的專案.firebaseapp.com",
+    databaseURL: "你的DATABASEURL",
+    projectId: "你的PROJECTID",
+    storageBucket: "",
+    messagingSenderId: "",
+    appId: ""
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+const playerId =
+    "player_" +
+    Math.random().toString(36).substr(2,9);
+
+let cursors;
+let me;
+let others = {};
+
+const config = {
+    type: Phaser.AUTO,
+    parent:'game',
+    width:window.innerWidth,
+    height:window.innerHeight,
+
+    scene:{
+        preload,
+        create,
+        update
+    }
+};
+
+new Phaser.Game(config);
+
+function preload(){}
+
+function create(){
+
+    this.cameras.main.setBackgroundColor('#444');
+
+    me = this.add.circle(
+        400,
+        300,
+        20,
+        0x00ff00
+    );
+
+    set(
+        ref(db,'players/'+playerId),
+        {
+            x:400,
+            y:300
+        }
+    );
+
+    onDisconnect(
+        ref(db,'players/'+playerId)
+    ).remove();
+
+    onValue(
+        ref(db,'players'),
+        snapshot=>{
+
+            const data = snapshot.val() || {};
+
+            for(let id in others){
+
+                if(!data[id]){
+                    others[id].destroy();
+                    delete others[id];
+                }
+            }
+
+            for(let id in data){
+
+                if(id===playerId) continue;
+
+                if(!others[id]){
+
+                    others[id]=this.add.circle(
+                        data[id].x,
+                        data[id].y,
+                        20,
+                        0x2196f3
+                    );
+
+                }else{
+
+                    others[id].x=data[id].x;
+                    others[id].y=data[id].y;
+                }
+            }
+        }
+    );
+
+    cursors=this.input.keyboard.addKeys({
+        up:'W',
+        down:'S',
+        left:'A',
+        right:'D'
+    });
+}
+
+function update(){
+
+    let speed=3;
+
+    if(cursors.left.isDown)
+        me.x-=speed;
+
+    if(cursors.right.isDown)
+        me.x+=speed;
+
+    if(cursors.up.isDown)
+        me.y-=speed;
+
+    if(cursors.down.isDown)
+        me.y+=speed;
+
+    set(
+        ref(db,'players/'+playerId),
+        {
+            x:me.x,
+            y:me.y
+        }
+    );
+}
+
+</script>
+
+</body>
 </html>
