@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>popcat</title>
+    <link rel="icon" href="Ocat.png">
+</head>
+
+<body>
+
+    <button id="button">按住我</button>
+
+    <br><br>
+
+    <img id="photo" src="cat.png" width="300">
+
+    <p>分數：<span id="score">0</span></p>
+
+    <script>
+        let score = 0;
+
+        const button = document.getElementById("button");
+        const photo = document.getElementById("photo");
+        const scoreText = document.getElementById("score");
+
+        button.addEventListener("mousedown", function() {
+            photo.src = "Ocat.png";
+            score = score + 1;
+            scoreText.textContent = score;
+        });
+
+        button.addEventListener("mouseup", function() {
+            photo.src = "cat.png";
+        });
+    </script>
+
+</body>
+</html>
