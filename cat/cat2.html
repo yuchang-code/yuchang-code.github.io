@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>popcat</title>
+    <link rel="icon" href="Ocat.png">
+  <style>
+    body {
+            background-color: lightblue;
+            text-align: center;
+            font-family: Arial;
+        }
+
+        #photo {
+            width: 300px;
+            border-radius: 20px;
+        }
+
+        p {
+            font-size: 30px;
+            color: white;
+            font-weight: bold;
+        }
+  </style>
+</head>
+
+<body>
+
+    <div>
+        <img id="photo" src="cat.png" width="300">
+    
+        <p>分數：<span id="score">0</span></p>
+    </div>
+    <script>
+        let score = 0;
+
+        const photo = document.getElementById("photo");
+        const scoreText = document.getElementById("score");
+
+        photo.addEventListener("mousedown", function() {
+            photo.src = "Ocat.png";
+            score = score + 1;
+            scoreText.textContent = score;
+        });
+
+        photo.addEventListener("mouseup", function() {
+            photo.src = "cat.png";
+        });
+    </script>
+
+</body>
+</html>
